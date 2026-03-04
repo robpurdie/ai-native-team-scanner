@@ -214,7 +214,3 @@ Potential improvements to the methodology:
 - Framework-specific patterns (React, Django, etc.)
 
 The core methodology is deliberately simple and focused. Extensions should only be added when the value is clear and validated.
-
----
-
-**Next:** See [Implementation Guide](docs/IMPLEMENTATION.md) for building the scanner.

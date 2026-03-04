@@ -25,8 +25,6 @@ This project provides a framework and methodology for detecting "AI-native" team
 - **[Vision](VISION.md)** - Why this matters and what problem we're solving
 - **[Maturity Model](MATURITY_MODEL.md)** - The three-level framework (Not Yet, Integrating, AI-Native)
 - **[Methodology](METHODOLOGY.md)** - Technical approach, signals, and scoring logic
-- **[Implementation Guide](docs/IMPLEMENTATION.md)** - How to build and deploy the scanner
-- **[Interpretation Guide](docs/INTERPRETATION.md)** - How to use the results effectively
 
 ## Quick Start
 
@@ -45,27 +43,6 @@ Teams are scored on both dimensions, with the **lower score** determining their 
 - **Threshold-based** - Clear criteria for each maturity level
 - **Calibratable** - Organizations set thresholds based on their context
 
-## Repository Structure
-
-```
-.
-├── README.md                    # This file
-├── VISION.md                    # Strategic context and purpose
-├── MATURITY_MODEL.md            # Three-level framework definition
-├── METHODOLOGY.md               # Technical scoring approach
-├── docs/
-│   ├── IMPLEMENTATION.md        # Building the scanner
-│   ├── INTERPRETATION.md        # Using the results
-│   ├── SIGNALS.md               # Detailed signal definitions
-│   └── FAQ.md                   # Common questions
-├── examples/
-│   ├── sample_scores.md         # Example team assessments
-│   └── edge_cases.md            # Handling unusual scenarios
-└── scripts/
-    └── (scanner implementation - future)
-
-```
-
 ## Use Cases
 
 This methodology is designed for:
@@ -80,7 +57,6 @@ This methodology is designed for:
 1. Read the [Vision](VISION.md) to understand the strategic context
 2. Review the [Maturity Model](MATURITY_MODEL.md) to understand the framework
 3. Study the [Methodology](METHODOLOGY.md) to see how detection works
-4. Check the [Implementation Guide](docs/IMPLEMENTATION.md) to build your scanner
 
 ## Contributing
 
