@@ -165,6 +165,8 @@ flowchart TD
 
 ### Core Data Structures
 
+**Note**: Phase 1 focuses on repository-level scoring. Team-level aggregation will be added in a future phase once we understand how repos map to teams in the organization.
+
 ```mermaid
 classDiagram
     class Repository {
@@ -220,7 +222,7 @@ classDiagram
         +String[] threshold_missed
     }
     
-    class TeamScore {
+    class RepositoryScore {
         +String repo_id
         +int overall_level
         +DimensionScore dimension_scores
@@ -229,12 +231,31 @@ classDiagram
         +String interpretation
     }
     
+    class TeamMapping {
+        +String team_name
+        +String[] repo_ids
+        +String notes
+    }
+    
+    class TeamScore {
+        +String team_name
+        +int overall_level
+        +RepositoryScore[] repo_scores
+        +String aggregation_method
+        +Date scored_at
+    }
+    
     Repository "1" --> "2" ObservationWindow
     ObservationWindow "1" --> "*" Commit
     ObservationWindow "1" --> "1" FileSnapshot
     DimensionScore "1" --> "1" SignalScores
-    TeamScore "1" --> "1" DimensionScore
-    Repository "1" --> "1" TeamScore
+    RepositoryScore "1" --> "1" DimensionScore
+    Repository "1" --> "1" RepositoryScore
+    TeamMapping "1" --> "*" Repository
+    TeamScore "1" --> "*" RepositoryScore
+    
+    note for TeamMapping "Phase 2: Optional team aggregation"
+    note for TeamScore "Phase 2: Aggregates repo scores to team level"
 ```
 
 ### Signal Thresholds (Configuration)
@@ -387,6 +408,35 @@ scoring:
 ---
 
 ## Open Questions
+
+### Repository vs Team Scoring
+
+**Important Context**: The goal is to identify **AI-native teams**, but we're measuring **GitHub repositories** as our data source.
+
+**Current Approach (Phase 1)**:
+- Score each repository individually
+- One repo = one score
+- Output shows repo-level maturity
+
+**Future Extension (Phase 2+)**:
+- Map repos to teams (manual config or GitHub team inference)
+- Aggregate repo scores to team level
+- Team score = **minimum** of all their repos (consistent with "lower of two" philosophy)
+- Report shows both individual repos AND team rollups
+
+**Why this matters**: 
+- Most teams own multiple repos
+- A team isn't "AI-native" if only one of their repos shows the pattern
+- Need organizational knowledge to map repos → teams correctly
+
+**Action Required**: 
+- Research how repos are organized in your organization
+- Determine if GitHub teams are used consistently
+- Design team mapping approach based on what you learn
+
+---
+
+## Other Open Questions
 
 1. **Where should threshold configurations live?** (JSON file in repo root, separate config directory?)
 2. **What's the target scan frequency?** (Weekly, monthly, on-demand?)
