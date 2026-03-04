@@ -353,42 +353,55 @@ scoring:
 
 ---
 
-## Technology Choices (To Be Decided)
+## Technology Stack
 
-**Language Options:**
-- Python (rich GitHub API libraries, data analysis tools)
-- TypeScript/Node (native GitHub integration, Octokit)
-- Go (performance, single binary deployment)
+**Language:** Python
+- Rich GitHub API libraries (PyGithub)
+- Excellent data analysis tools (pandas)
+- Easy to iterate and prototype
+- Wide library ecosystem
 
-**Key Libraries/Tools:**
-- GitHub API client (PyGithub, Octokit, go-github)
-- Data processing (pandas for Python, dataframes)
-- Report generation (markdown, HTML, PDF)
-- Storage (SQLite for local, PostgreSQL for production)
+**Key Libraries:**
+- **PyGithub** - GitHub API client
+- **pandas** - Data processing and analysis
+- **json** - Configuration and output format
+- **datetime** - Window calculations
+- **argparse** - CLI interface
 
-**Configuration:**
-- YAML/JSON for thresholds and settings
-- Environment variables for credentials
-- Config file for repo lists
+**Configuration Format:** JSON
+- Thresholds and settings in JSON files
+- Easy to read and modify
+- Native Python support
+- Output format matches config format
+
+**Storage:**
+- JSON files for results (simple, portable)
+- File system for historical scans
+- No database required for MVP
+
+**Authentication:**
+- GitHub Personal Access Token via environment variable
+- Stored in `.env` file (not committed)
+- Token needs `repo` scope for private repos
 
 ---
 
 ## Open Questions
 
-1. **Where should threshold configurations live?** (YAML file, database, hardcoded?)
-2. **How do we handle authentication at scale?** (Personal token, GitHub App, org-level access?)
-3. **What's the target scan frequency?** (Weekly, monthly, on-demand?)
-4. **Who runs this?** (Coaching team manually, automated in CI/CD, platform team owns it?)
-5. **Where do results go?** (Git repo, dashboard, Slack notifications, email reports?)
-6. **How do we handle private repos?** (Need appropriate scopes/permissions)
-7. **Should we cache results?** (Avoid re-scanning unchanged repos, how long to cache?)
+1. **Where should threshold configurations live?** (JSON file in repo root, separate config directory?)
+2. **What's the target scan frequency?** (Weekly, monthly, on-demand?)
+3. **Who runs this initially?** (You manually, automated later?)
+4. **Where do final results go?** (JSON files in results/ directory, also generate markdown reports?)
+5. **How do we handle private repos at scale?** (Personal token sufficient, or need GitHub App?)
+6. **Should we cache GitHub API responses?** (Avoid re-fetching unchanged data, how long to cache?)
+7. **Repo list input format?** (JSON file with repo URLs, text file with org/repo names, command-line args?)
 
 These will inform our implementation choices as we build.
 
 ---
 
 **Next Steps:**
-1. Choose implementation language and core libraries
+1. ✅ Choose implementation language and core libraries (Python + PyGithub)
 2. Build Phase 1 MVP: single-repo scanner
 3. Test against known repos to validate detection logic
 4. Iterate on signal detection accuracy
