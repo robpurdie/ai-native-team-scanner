@@ -88,8 +88,8 @@ This is an evolving methodology. Contributions, calibrations, and adaptations fo
 
 ## License
 
-[Your license choice]
+MIT License
 
-## Authors
+## Author
 
-Rob and team at Cisco IT
+Rob Purdie
