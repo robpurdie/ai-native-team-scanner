@@ -58,16 +58,16 @@ Three levels:
 
 ## The Context
 
-This methodology was developed at Cisco IT, a 10,000-person organization with 500+ Agile teams and a small coaching team operating through a "coach the coaches" model. The challenge: how do ~10 coaches help hundreds of teams develop AI-native capability when direct observation doesn't scale?
+This methodology addresses a common challenge in large organizations: how do small coaching or enablement teams help hundreds of development teams develop AI-native capability when direct observation doesn't scale?
 
-The answer: **programmatic detection** that surfaces teams worth deeper engagement, combined with a **leadership cascade** approach where domain leaders develop their teams.
+The answer: **programmatic detection** that surfaces teams worth deeper engagement, combined with scalable approaches to capability development.
 
 ## Success Looks Like
 
 **Short term:**
-- Baseline understanding of AI adoption across IT
+- Baseline understanding of AI adoption across the organization
 - 5-10 exemplar teams identified for peer learning
-- Coaching resources focused on highest-leverage opportunities
+- Resources focused on highest-leverage opportunities
 
 **Medium term:**
 - Quarterly tracking of capability development
@@ -77,7 +77,7 @@ The answer: **programmatic detection** that surfaces teams worth deeper engageme
 **Long term:**
 - Measurable increase in AI-native teams (Level 2)
 - Sustained engineering practice improvements
-- Culture shift from "doing Agile" to "being Agile" with AI
+- Culture shift toward adaptive, continuous learning
 
 ## What This Is NOT
 
