@@ -14,7 +14,7 @@ def test_imports() -> None:
     """Test that basic imports work."""
     # Test that implemented modules can be imported
     from scanner import github_client  # noqa: F401
-    
+
     # Test that unimplemented modules still raise ImportError
     with pytest.raises(ImportError):
         from scanner import signal_detector  # noqa: F401
