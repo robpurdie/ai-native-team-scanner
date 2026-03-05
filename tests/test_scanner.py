@@ -12,10 +12,12 @@ def test_version() -> None:
 
 def test_imports() -> None:
     """Test that basic imports work."""
-    # This will fail initially - that's expected for TDD
-    # We'll implement these modules as we go
+    # Test that implemented modules can be imported
+    from scanner import github_client  # noqa: F401
+    
+    # Test that unimplemented modules still raise ImportError
     with pytest.raises(ImportError):
-        from scanner import github_client  # noqa: F401
+        from scanner import signal_detector  # noqa: F401
 
 
 class TestPlaceholder:
