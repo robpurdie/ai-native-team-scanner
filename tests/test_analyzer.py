@@ -3,8 +3,6 @@
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 
-import pytest
-
 from scanner.analyzer import CommitAnalyzer
 from scanner.models import ObservationWindow
 

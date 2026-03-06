@@ -8,9 +8,7 @@ import pytest
 
 from scanner.cli import main
 from scanner.models import (
-    AIAdoptionSignals,
     DimensionScore,
-    EngineeringSignals,
     ObservationWindow,
     TeamMaturityScore,
 )
