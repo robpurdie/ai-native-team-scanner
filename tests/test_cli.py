@@ -1,9 +1,6 @@
 """Tests for CLI module."""
 
 import json
-import sys
-from io import StringIO
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
