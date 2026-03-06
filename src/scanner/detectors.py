@@ -34,13 +34,18 @@ class AIConfigDetector:
         """
         try:
             contents = repo.get_contents("")
-            files = [item.path for item in contents if item.type == "file"]
+            # Handle both single file and list of files
+            content_list = contents if isinstance(contents, list) else [contents]
+            files = [item.path for item in content_list if item.type == "file"]
 
             # Recursively get .github folder if it exists
             try:
                 github_contents = repo.get_contents(".github")
+                github_list = (
+                    github_contents if isinstance(github_contents, list) else [github_contents]
+                )
                 github_files = [
-                    f".github/{item.path}" for item in github_contents if item.type == "file"
+                    f".github/{item.path}" for item in github_list if item.type == "file"
                 ]
                 files.extend(github_files)
             except Exception:
@@ -200,7 +205,8 @@ class CICDDetector:
         try:
             # Get all files in root
             contents = repo.get_contents("")
-            root_files = [item.path for item in contents]
+            content_list = contents if isinstance(contents, list) else [contents]
+            root_files = [item.path for item in content_list]
 
             # Check for CI/CD patterns
             for pattern in cls.CI_CD_PATTERNS:
@@ -249,7 +255,8 @@ class DocumentationDetector:
 
         try:
             contents = repo.get_contents("")
-            files = [item.path for item in contents]
+            content_list = contents if isinstance(contents, list) else [contents]
+            files = [item.path for item in content_list]
 
             for file_path in files:
                 for pattern in cls.DOC_PATTERNS:

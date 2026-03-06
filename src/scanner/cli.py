@@ -5,6 +5,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -13,7 +14,7 @@ from scanner.github_client import GitHubClient
 from scanner.scoring import TeamScorer
 
 
-def format_score_output(score) -> dict:
+def format_score_output(score: Any) -> dict:
     """Format TeamMaturityScore for JSON output.
 
     Args:
@@ -62,7 +63,7 @@ def format_score_output(score) -> dict:
     }
 
 
-def print_score_summary(score) -> None:
+def print_score_summary(score: Any) -> None:
     """Print human-readable summary of score.
 
     Args:

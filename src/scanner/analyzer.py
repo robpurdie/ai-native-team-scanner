@@ -1,7 +1,7 @@
 """Commit analysis for AI-Native Team Scanner."""
 
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 from github.Repository import Repository
 
@@ -44,7 +44,7 @@ class CommitAnalyzer:
 
         return contributors
 
-    def analyze_commits(self) -> Dict[str, any]:
+    def analyze_commits(self) -> Dict[str, Any]:
         """Analyze all commits in observation window.
 
         Returns:

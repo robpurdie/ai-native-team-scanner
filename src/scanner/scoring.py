@@ -1,7 +1,7 @@
 """Scoring engine for AI-Native Team Scanner."""
 
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Any, Dict, Iterator, Optional
 
 from github.Repository import Repository
 
@@ -97,7 +97,7 @@ class TeamScorer:
         )
 
     def _detect_ai_signals(
-        self, repo: Repository, commit_analysis: Dict[str, any], contributor_count: int
+        self, repo: Repository, commit_analysis: Dict[str, Any], contributor_count: int
     ) -> AIAdoptionSignals:
         """Detect all AI adoption signals.
 
@@ -135,7 +135,7 @@ class TeamScorer:
         )
 
     def _detect_engineering_signals(
-        self, repo: Repository, commit_analysis: Dict[str, any]
+        self, repo: Repository, commit_analysis: Dict[str, Any]
     ) -> EngineeringSignals:
         """Detect all engineering practice signals.
 
@@ -185,7 +185,7 @@ class TeamScorer:
             documentation_files=doc_files,
         )
 
-    def _walk_repository(self, repo: Repository, path: str):
+    def _walk_repository(self, repo: Repository, path: str) -> Iterator[Any]:
         """Recursively walk repository files (simplified version).
 
         Args:
@@ -197,7 +197,8 @@ class TeamScorer:
         """
         try:
             contents = repo.get_contents(path)
-            for item in contents:
+            content_list = contents if isinstance(contents, list) else [contents]
+            for item in content_list:
                 if item.type == "file":
                     yield item
                 elif item.type == "dir" and not item.path.startswith("."):
