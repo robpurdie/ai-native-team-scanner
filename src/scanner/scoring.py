@@ -118,9 +118,10 @@ class TeamScorer:
         ai_commit_rate = ai_commits / total_commits if total_commits > 0 else 0.0
 
         contributors_with_ai = len(commit_analysis["contributors_with_ai"])
-        contributor_ai_rate = (
-            contributors_with_ai / contributor_count if contributor_count > 0 else 0.0
-        )
+        if contributor_count > 0:
+            contributor_ai_rate = contributors_with_ai / contributor_count
+        else:
+            contributor_ai_rate = 0.0
 
         return AIAdoptionSignals(
             config_file_present=config_present,
@@ -150,7 +151,6 @@ class TeamScorer:
         code_files = 0
 
         try:
-            contents = repo.get_contents("")
             for item in self._walk_repository(repo, ""):
                 if FileTypeDetector.is_code_file(item.path):
                     code_files += 1

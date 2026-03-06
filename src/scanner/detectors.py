@@ -2,11 +2,9 @@
 
 import re
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Tuple
 
 from github.Repository import Repository
-
-from scanner.models import AIAdoptionSignals, EngineeringSignals
 
 
 class AIConfigDetector:

@@ -4,7 +4,6 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -73,9 +72,9 @@ def print_score_summary(score) -> None:
     print(f"AI-NATIVE TEAM ASSESSMENT: {score.repository}")
     print(f"{'='*60}")
 
-    print(
-        f"\nObservation Window: {score.observation_window.start_date.date()} to {score.observation_window.end_date.date()}"
-    )
+    window_start = score.observation_window.start_date.date()
+    window_end = score.observation_window.end_date.date()
+    print(f"\nObservation Window: {window_start} to {window_end}")
     print(f"Active Contributors: {score.active_contributors}")
 
     print(f"\n{'─'*60}")

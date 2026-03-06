@@ -1,7 +1,7 @@
 """Commit analysis for AI-Native Team Scanner."""
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional, Set
 
 from github.Repository import Repository
 

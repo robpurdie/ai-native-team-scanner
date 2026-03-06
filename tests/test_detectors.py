@@ -1,9 +1,6 @@
 """Tests for signal detectors."""
 
-import pytest
-
 from scanner.detectors import (
-    AIConfigDetector,
     CommitPatternDetector,
     ConventionalCommitDetector,
     FileTypeDetector,
