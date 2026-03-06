@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from github import Github, Auth
+from github import Auth, Github
 
 
 @dataclass

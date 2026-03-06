@@ -1,10 +1,11 @@
 """Tests for GitHub client module."""
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
-from scanner.github_client import GitHubClient, RepositoryData, CommitData
+import pytest
+
+from scanner.github_client import CommitData, GitHubClient, RepositoryData
 
 
 class TestGitHubClient:
