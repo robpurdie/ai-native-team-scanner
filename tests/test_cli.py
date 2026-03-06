@@ -18,9 +18,7 @@ from scanner.models import (
 
 def create_mock_score(repo_name="owner/repo", level=0):
     """Helper to create a mock TeamMaturityScore."""
-    window = ObservationWindow(
-        start_date=datetime(2025, 12, 6), end_date=datetime(2026, 3, 6)
-    )
+    window = ObservationWindow(start_date=datetime(2025, 12, 6), end_date=datetime(2026, 3, 6))
 
     ai_score = DimensionScore(
         dimension="AI Adoption",
