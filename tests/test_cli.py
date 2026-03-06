@@ -43,9 +43,7 @@ class TestCLIMain:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
 
-        repo_data = RepositoryData(
-            full_name="owner/repo", owner="owner", name="repo"
-        )
+        repo_data = RepositoryData(full_name="owner/repo", owner="owner", name="repo")
         mock_client.get_repository_data.return_value = repo_data
 
         # Run main
@@ -78,9 +76,7 @@ class TestCLIMain:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
 
-        repo_data = RepositoryData(
-            full_name="owner/repo", owner="owner", name="repo"
-        )
+        repo_data = RepositoryData(full_name="owner/repo", owner="owner", name="repo")
         mock_client.get_repository_data.return_value = repo_data
 
         # Run with temp output file
@@ -112,9 +108,7 @@ class TestCLIMain:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
 
-        repo_data = RepositoryData(
-            full_name="owner/repo", owner="owner", name="repo"
-        )
+        repo_data = RepositoryData(full_name="owner/repo", owner="owner", name="repo")
         mock_client.get_repository_data.return_value = repo_data
 
         # Run with temp output file using short flag
@@ -157,9 +151,7 @@ class TestCLIMain:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
 
-        repo_data = RepositoryData(
-            full_name="owner/repo", owner="owner", name="repo"
-        )
+        repo_data = RepositoryData(full_name="owner/repo", owner="owner", name="repo")
         mock_client.get_repository_data.return_value = repo_data
 
         # Run with nested output path
