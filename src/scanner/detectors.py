@@ -122,7 +122,12 @@ class FileTypeDetector:
         "typescript": [r".*\.test\.ts$", r".*\.spec\.ts$", r"__tests__/.*\.ts$"],
         "java": [r".*Test\.java$", r"test/.*\.java$"],
         "go": [r".*_test\.go$"],
-        "ruby": [r".*_spec\.rb$", r"spec/.*\.rb$"],
+        "ruby": [
+            r".*_spec\.rb$",      # RSpec
+            r"spec/.*\.rb$",      # RSpec  
+            r".*_test\.rb$",      # Minitest
+            r"test/.*\.rb$",      # Minitest
+        ],
         "rust": [r"tests/.*\.rs$", r".*_test\.rs$"],
     }
 
