@@ -67,11 +67,34 @@ class CommitPatternDetector:
 
     # Patterns that suggest AI assistance
     AI_COMMIT_PATTERNS = [
-        r"(?i)co-?authored-by.*copilot",
-        r"(?i)co-?authored-by.*claude",
-        r"(?i)\bai\b.*\b(assisted|generated|suggested)\b",
-        r"(?i)\b(copilot|claude|cursor|aider)\b",
-        r"(?i)^(feat|fix|refactor).*\bai\b",
+        # Explicit AI tool mentions (keep existing - high confidence)
+    r"(?i)\b(copilot|claude|cursor|aider|chatgpt|gpt-?4|codewhisperer|tabnine)\b",
+    r"(?i)co-?authored-by.*(copilot|claude|ai|assistant)",
+    r"(?i)\bai\b.*\b(assisted|generated|suggested)\b",
+    
+    # Verbose conventional commits (AI tends to be detailed)
+    r"(?i)^(feat|fix|refactor|chore|docs|style|test|perf)(\([^)]+\))?: (add|update|improve|enhance|optimize|refactor).{40,}",
+    
+    # Multiple sentences with connectors (AI pattern)
+    r"\.[\s\n]+(This|Additionally|Also|Furthermore|Moreover|It also)",
+    
+    # Bullet points in commit messages (common AI pattern)
+    r"(?m)^[-*•]\s+",
+    
+    # Specific improvement language (AI often uses this phrasing)
+    r"(?i)\b(improve|enhance|optimize|refactor|streamline)\b.{0,30}\b(performance|readability|maintainability|efficiency|code quality)\b",
+    
+    # Documentation additions (AI frequently adds comprehensive docs)
+    r"(?i)^docs?(\([^)]+\))?: (add|update|improve).{0,30}\b(documentation|docstring|comment|readme|guide)\b",
+    
+    # Test additions with detail (AI often suggests comprehensive tests)
+    r"(?i)^test(\([^)]+\))?: (add|update).{0,30}\b(tests?|specs?|coverage|unit tests?|integration tests?)\b",
+    
+    # Type safety improvements (AI commonly suggests this)
+    r"(?i)(add|update|improve).{0,30}\b(type annotation|typing|type hint|interface|type safety)\b",
+    
+    # Error handling improvements (AI pattern)
+    r"(?i)(add|improve).{0,30}\b(error handling|exception|validation|error message)\b",
     ]
 
     @classmethod
