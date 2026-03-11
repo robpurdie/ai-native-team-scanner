@@ -117,19 +117,53 @@ class FileTypeDetector:
 
     # Test file patterns by language
     TEST_PATTERNS = {
-        "python": [r"test_.*\.py$", r".*_test\.py$", r"tests?/.*\.py$"],
-        "javascript": [r".*\.test\.js$", r".*\.spec\.js$", r"__tests__/.*\.js$"],
-        "typescript": [r".*\.test\.ts$", r".*\.spec\.ts$", r"__tests__/.*\.ts$"],
-        "java": [r".*Test\.java$", r"test/.*\.java$"],
-        "go": [r".*_test\.go$"],
-        "ruby": [
-            r".*_spec\.rb$",      # RSpec
-            r"spec/.*\.rb$",      # RSpec  
-            r".*_test\.rb$",      # Minitest
-            r"test/.*\.rb$",      # Minitest
-        ],
-        "rust": [r"tests/.*\.rs$", r".*_test\.rs$"],
-    }
+       "python": [
+           r"test_.*\.py$", 
+           r".*_test\.py$", 
+           r"tests?/.*\.py$",
+           r".*_spec\.py$",      # pytest-bdd style
+       ],
+       "javascript": [
+           r".*\.test\.(js|jsx|mjs)$",
+           r".*\.spec\.(js|jsx|mjs)$",
+           r"__tests__/.*\.(js|jsx|mjs)$",
+           r"tests?/.*\.(js|jsx|mjs)$",
+       ],
+       "typescript": [
+           r".*\.test\.(ts|tsx)$",
+           r".*\.spec\.(ts|tsx)$",
+           r"__tests__/.*\.(ts|tsx)$",
+           r"tests?/.*\.(ts|tsx)$",
+       ],
+       "java": [
+           r".*Test\.java$",
+           r".*Tests\.java$",
+           r"src/test/.*\.java$",
+           r"test/.*\.java$",
+       ],
+       "go": [
+           r".*_test\.go$",
+       ],
+       "ruby": [
+           r".*_spec\.rb$",      # RSpec
+           r"spec/.*\.rb$",      # RSpec  
+           r".*_test\.rb$",      # Minitest
+           r"test/.*\.rb$",      # Minitest
+       ],
+       "rust": [
+           r"tests/.*\.rs$",
+           r".*_test\.rs$",
+       ],
+       "csharp": [
+           r".*Test\.cs$",
+           r".*Tests\.cs$",
+           r"test/.*\.cs$",
+       ],
+       "php": [
+           r".*Test\.php$",
+           r"tests?/.*\.php$",
+       ],
+   }
 
     # Code file extensions (not comprehensive, but common ones)
     CODE_EXTENSIONS = {
