@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-native-team-scanner"
-version = "0.1.0"
+version = "2.0.0"
 description = "Detect AI-native teams through GitHub repository analysis"
 authors = [{name = "Rob Purdie"}]
 readme = "README.md"
