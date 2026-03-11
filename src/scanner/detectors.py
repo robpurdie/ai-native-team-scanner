@@ -182,6 +182,12 @@ class FileTypeDetector:
         ".cs",
         ".swift",
         ".kt",
+        ".scala",      # Scala
+        ".clj",        # Clojure
+        ".cljs",       # ClojureScript
+        ".dart",       # Dart/Flutter
+        ".vue",        # Vue
+        ".svelte",     # Svelte
     }
 
     @classmethod
