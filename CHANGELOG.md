@@ -17,7 +17,7 @@ This release represents a complete overhaul of detection patterns, transforming 
 - Added Ruby Minitest detection patterns (`*_test.rb`, `test/` directory)
 - Added pytest-bdd style detection for Python (`*_spec.py`)
 - Added `.mjs` file support for JavaScript tests
-- Added `.tsx` file support for TypeScript tests  
+- Added `.tsx` file support for TypeScript tests
 - Added `*Tests.java` plural pattern for Java
 - Added `src/test/` directory pattern for Maven/Gradle projects
 - Added complete C# test detection (`*Test.cs`, `*Tests.cs`, `test/`)
@@ -58,7 +58,7 @@ Real-world impact on test repositories:
 
 #### rails/rails
 - Test Coverage: 0.0% → 54.3% (+54.3 percentage points)
-- AI Commits: 0.2% → 14.7% (73x improvement)  
+- AI Commits: 0.2% → 14.7% (73x improvement)
 - Contributor AI: 0.9% → 39.5% (44x improvement)
 
 #### langgenius/dify
@@ -127,7 +127,7 @@ Real-world impact on test repositories:
 ### What to Expect
 
 - **Test coverage** will be more accurate (especially for Rails/Minitest projects)
-- **AI detection rates** will increase 2-3x  
+- **AI detection rates** will increase 2-3x
 - Some repos may jump maturity levels (especially engineering practices)
 - No changes to output format or CLI interface
 

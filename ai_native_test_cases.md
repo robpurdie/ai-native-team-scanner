@@ -263,7 +263,7 @@ Each test case specifies:
 
 **Rationale**: Bot accounts inflate metrics in ways that don't reflect human team behavior. Scanner must filter known bot patterns before counting active contributors or calculating signals.
 
-**Implementation approach**: 
+**Implementation approach**:
 - Maintain exclusion list of known bots: dependabot, renovate, github-actions[bot], snyk-bot, codecov, greenkeeper, plus org-specific automation accounts
 - Filter these before calculating active contributors
 - Additionally flag for manual review if any remaining contributor shows: >40% of total commits, >20 commits/week sustained, or median PR size <10 lines
@@ -482,4 +482,3 @@ Each test case specifies:
 4. **"Near miss" tracking**: ✓ DECIDED — Implement Tier 2 feedback (gap quantification with prioritization) for Increment 1. Provide per-signal gap analysis showing current value, required threshold, delta, and priority. Flag teams within 2 gaps of next level as coaching priorities. Reserve Tier 3 (contextual recommendations) for Increment 2.
 
 5. **Historical window access**: ✓ RESOLVED — Teams using GitHub since January 2025 have 14+ months of history available. This provides sufficient data for full L0/L1/L2 scoring (need 180 days for two consecutive 90-day windows). Teams with <180 days flagged as "L1 maximum - insufficient history for L2." Teams with <90 days excluded from Increment 1.
-

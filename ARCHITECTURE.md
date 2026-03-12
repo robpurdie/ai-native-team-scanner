@@ -10,47 +10,47 @@ graph TB
         GH[GitHub API]
         REPOS[(Repository Files)]
     end
-    
+
     subgraph "Scanner Core"
         AUTH[Authentication & Access]
         FETCH[Repository Fetcher]
         PARSE[File Parser]
         EXTRACT[Signal Extractor]
     end
-    
+
     subgraph "Analysis Engine"
         AI_CALC[AI Adoption Calculator]
         ENG_CALC[Engineering Calculator]
         NORM[Normalizer<br/>Active Contributors]
         SCORE[Maturity Scorer]
     end
-    
+
     subgraph "Output"
         RESULTS[(Team Scores)]
         REPORT[Report Generator]
         EXPORT[Export<br/>JSON/CSV]
     end
-    
+
     GH --> AUTH
     AUTH --> FETCH
     FETCH --> REPOS
     REPOS --> PARSE
     PARSE --> EXTRACT
-    
+
     EXTRACT --> AI_CALC
     EXTRACT --> ENG_CALC
     EXTRACT --> NORM
-    
+
     NORM --> AI_CALC
     NORM --> ENG_CALC
-    
+
     AI_CALC --> SCORE
     ENG_CALC --> SCORE
-    
+
     SCORE --> RESULTS
     RESULTS --> REPORT
     RESULTS --> EXPORT
-    
+
     style AUTH fill:#e1f5ff
     style SCORE fill:#fff4e1
     style RESULTS fill:#e8f5e9
@@ -78,17 +78,17 @@ flowchart TD
     START([Start: Repo List]) --> AUTH{Authenticated?}
     AUTH -->|No| ERROR1[Error: Auth Failed]
     AUTH -->|Yes| WINDOW[Set Observation Window<br/>90 days from today]
-    
+
     WINDOW --> FETCH_META[Fetch Repo Metadata]
     FETCH_META --> FETCH_COMMITS[Fetch Commits in Window]
     FETCH_COMMITS --> CALC_CONTRIB[Calculate Active Contributors<br/>distinct commit authors]
-    
+
     CALC_CONTRIB --> CHECK_MIN{Active Contributors >= 2?}
     CHECK_MIN -->|No| FLAG[Flag for Manual Review]
     CHECK_MIN -->|Yes| FETCH_FILES[Fetch File Tree]
-    
+
     FETCH_FILES --> EXTRACT_SIGNALS[Extract Signals]
-    
+
     subgraph "Signal Extraction"
         EXTRACT_SIGNALS --> AI_CONFIG[AI Tool Config Files?]
         EXTRACT_SIGNALS --> AI_COMMITS[AI-Assisted Commit Patterns?]
@@ -98,54 +98,54 @@ flowchart TD
         EXTRACT_SIGNALS --> CICD[CI/CD Config Present?]
         EXTRACT_SIGNALS --> DOCS[Documentation Quality?]
     end
-    
+
     AI_CONFIG --> SCORE_AI[Score AI Adoption Dimension]
     AI_COMMITS --> SCORE_AI
     AI_MARKERS --> SCORE_AI
-    
+
     TESTS --> SCORE_ENG[Score Engineering Dimension]
     CONV_COMMITS --> SCORE_ENG
     CICD --> SCORE_ENG
     DOCS --> SCORE_ENG
-    
+
     SCORE_AI --> EVAL_AI{Meets L2 Thresholds?}
     EVAL_AI -->|Yes| AI_L2[AI Level = 2]
     EVAL_AI -->|No| EVAL_AI_L1{Meets L1 Thresholds?}
     EVAL_AI_L1 -->|Yes| AI_L1[AI Level = 1]
     EVAL_AI_L1 -->|No| AI_L0[AI Level = 0]
-    
+
     SCORE_ENG --> EVAL_ENG{Meets L2 Thresholds?}
     EVAL_ENG -->|Yes| ENG_L2[Eng Level = 2]
     EVAL_ENG -->|No| EVAL_ENG_L1{Meets L1 Thresholds?}
     EVAL_ENG_L1 -->|Yes| ENG_L1[Eng Level = 1]
     EVAL_ENG_L1 -->|No| ENG_L0[Eng Level = 0]
-    
+
     AI_L2 --> APPLY_MIN[Overall Level = min AI, Eng]
     AI_L1 --> APPLY_MIN
     AI_L0 --> APPLY_MIN
     ENG_L2 --> APPLY_MIN
     ENG_L1 --> APPLY_MIN
     ENG_L0 --> APPLY_MIN
-    
+
     APPLY_MIN --> CHECK_L2{Overall Level = 2?}
     CHECK_L2 -->|Yes| VERIFY_SUSTAINED[Verify Sustained Pattern<br/>Previous 90-day window]
     CHECK_L2 -->|No| RECORD_SCORE[Record Score]
-    
+
     VERIFY_SUSTAINED --> SUSTAINED{Sustained across 2 windows?}
     SUSTAINED -->|Yes| CONFIRM_L2[Confirm Level 2]
     SUSTAINED -->|No| DOWNGRADE[Downgrade to Level 1]
-    
+
     CONFIRM_L2 --> RECORD_SCORE
     DOWNGRADE --> RECORD_SCORE
     FLAG --> RECORD_SCORE
-    
+
     RECORD_SCORE --> MORE{More Repos?}
     MORE -->|Yes| FETCH_META
     MORE -->|No| GENERATE[Generate Report]
-    
+
     GENERATE --> END([End: Results Available])
     ERROR1 --> END
-    
+
     style CHECK_MIN fill:#fff4e1
     style APPLY_MIN fill:#fff4e1
     style VERIFY_SUSTAINED fill:#ffe1e1
@@ -177,7 +177,7 @@ classDiagram
         +ObservationWindow current_window
         +ObservationWindow previous_window
     }
-    
+
     class ObservationWindow {
         +Date start_date
         +Date end_date
@@ -185,7 +185,7 @@ classDiagram
         +Commit[] commits
         +FileSnapshot file_snapshot
     }
-    
+
     class Commit {
         +String sha
         +String author
@@ -194,7 +194,7 @@ classDiagram
         +boolean ai_assisted
         +boolean conventional_format
     }
-    
+
     class FileSnapshot {
         +int total_files
         +int test_files
@@ -203,7 +203,7 @@ classDiagram
         +String[] ai_config_files
         +DocumentationQuality docs
     }
-    
+
     class SignalScores {
         +int ai_config_score
         +float ai_commit_percentage
@@ -213,7 +213,7 @@ classDiagram
         +boolean has_cicd
         +int documentation_score
     }
-    
+
     class DimensionScore {
         +int ai_adoption_level
         +int engineering_level
@@ -221,7 +221,7 @@ classDiagram
         +String[] threshold_met
         +String[] threshold_missed
     }
-    
+
     class RepositoryScore {
         +String repo_id
         +int overall_level
@@ -230,13 +230,13 @@ classDiagram
         +Date scored_at
         +String interpretation
     }
-    
+
     class TeamMapping {
         +String team_name
         +String[] repo_ids
         +String notes
     }
-    
+
     class TeamScore {
         +String team_name
         +int overall_level
@@ -244,7 +244,7 @@ classDiagram
         +String aggregation_method
         +Date scored_at
     }
-    
+
     Repository "1" --> "2" ObservationWindow
     ObservationWindow "1" --> "*" Commit
     ObservationWindow "1" --> "1" FileSnapshot
@@ -253,7 +253,7 @@ classDiagram
     Repository "1" --> "1" RepositoryScore
     TeamMapping "1" --> "*" Repository
     TeamScore "1" --> "*" RepositoryScore
-    
+
     note for TeamMapping "Phase 2: Optional team aggregation"
     note for TeamScore "Phase 2: Aggregates repo scores to team level"
 ```
@@ -274,7 +274,7 @@ thresholds:
       ai_commit_percentage: 60
       ai_contributor_percentage: 80
       sustained_windows: 2
-  
+
   engineering:
     level_1:
       test_file_percentage: 15
@@ -291,7 +291,7 @@ thresholds:
 normalization:
   observation_window_days: 90
   minimum_active_contributors: 2
-  
+
 scoring:
   rule: "min"  # Overall level = min(ai_level, eng_level)
 ```
@@ -424,12 +424,12 @@ scoring:
 - Team score = **minimum** of all their repos (consistent with "lower of two" philosophy)
 - Report shows both individual repos AND team rollups
 
-**Why this matters**: 
+**Why this matters**:
 - Most teams own multiple repos
 - A team isn't "AI-native" if only one of their repos shows the pattern
 - Need organizational knowledge to map repos → teams correctly
 
-**Action Required**: 
+**Action Required**:
 - Research how repos are organized in your organization
 - Determine if GitHub teams are used consistently
 - Design team mapping approach based on what you learn

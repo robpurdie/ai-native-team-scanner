@@ -29,7 +29,7 @@ const generateMockTeams = () => {
       sustainedPattern: true,
       repoAge: 420
     },
-    
+
     // TC-02: Solid L1 Team
     {
       id: 'team-002',
@@ -54,7 +54,7 @@ const generateMockTeams = () => {
       sustainedPattern: false,
       repoAge: 420
     },
-    
+
     // TC-03: Classic L0 Team
     {
       id: 'team-003',
@@ -79,7 +79,7 @@ const generateMockTeams = () => {
       sustainedPattern: false,
       repoAge: 420
     },
-    
+
     // TC-04: High AI, Weak Engineering (Cargo Cult)
     {
       id: 'team-004',
@@ -105,7 +105,7 @@ const generateMockTeams = () => {
       repoAge: 420,
       note: 'Cargo cult AI adoption - tools without discipline'
     },
-    
+
     // TC-05: Strong Engineering, Minimal AI
     {
       id: 'team-005',
@@ -131,7 +131,7 @@ const generateMockTeams = () => {
       repoAge: 420,
       note: 'Excellent engineering foundation, ready for AI enablement'
     },
-    
+
     // TC-15: Borderline L1/L2 (Near miss)
     {
       id: 'team-006',
@@ -157,7 +157,7 @@ const generateMockTeams = () => {
       repoAge: 420,
       note: 'Near L2 - 2 gaps remaining'
     },
-    
+
     // TC-18: Improvement Trajectory
     {
       id: 'team-007',
@@ -184,7 +184,7 @@ const generateMockTeams = () => {
       trajectory: 'L0 → L1 → L2',
       note: 'Sustained improvement over 3 quarters'
     },
-    
+
     // TC-17: Partial History
     {
       id: 'team-008',
@@ -216,14 +216,14 @@ const generateMockTeams = () => {
 // Scoring engine
 const calculateScore = (team) => {
   const { signals, sustainedPattern, repoAge } = team;
-  
+
   // Check AI Adoption dimension
   const aiL1Met = (
     signals.aiAdoption.configFiles.met_l1 &&
     signals.aiAdoption.dependencies.met_l1 &&
     signals.aiAdoption.prRichness.met_l1
   );
-  
+
   const aiL2Met = (
     aiL1Met &&
     signals.aiAdoption.configFiles.met_l2 &&
@@ -233,16 +233,16 @@ const calculateScore = (team) => {
     sustainedPattern &&
     repoAge >= 180
   );
-  
+
   const aiLevel = aiL2Met ? 2 : aiL1Met ? 1 : 0;
-  
+
   // Check Engineering Practices dimension
   const engL1Met = (
     signals.engineeringPractices.commitFreq.met_l1 &&
     signals.engineeringPractices.prSize.met_l1 &&
     signals.engineeringPractices.testSpread.met_l1
   );
-  
+
   const engL2Met = (
     engL1Met &&
     signals.engineeringPractices.commitFreq.met_l2 &&
@@ -253,12 +253,12 @@ const calculateScore = (team) => {
     sustainedPattern &&
     repoAge >= 180
   );
-  
+
   const engLevel = engL2Met ? 2 : engL1Met ? 1 : 0;
-  
+
   // Overall level is lower of two dimensions
   const overallLevel = Math.min(aiLevel, engLevel);
-  
+
   return {
     overall: overallLevel,
     aiAdoption: aiLevel,
@@ -274,10 +274,10 @@ const calculateScore = (team) => {
 const analyzeGaps = (team, score) => {
   const gaps = [];
   const { signals } = team;
-  
+
   // Target next level
   const targetLevel = score.overall < 2 ? score.overall + 1 : 2;
-  
+
   // Check AI Adoption gaps
   Object.entries(signals.aiAdoption).forEach(([key, signal]) => {
     if (targetLevel === 1 && !signal.met_l1) {
@@ -300,7 +300,7 @@ const analyzeGaps = (team, score) => {
       });
     }
   });
-  
+
   // Check Engineering Practices gaps
   Object.entries(signals.engineeringPractices).forEach(([key, signal]) => {
     if (targetLevel === 1 && !signal.met_l1) {
@@ -323,7 +323,7 @@ const analyzeGaps = (team, score) => {
       });
     }
   });
-  
+
   return gaps.sort((a, b) => {
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -332,21 +332,21 @@ const analyzeGaps = (team, score) => {
 
 const calculateDelta = (signal, level) => {
   const threshold = level === 'l1' ? signal.threshold_l1 : signal.threshold_l2;
-  
+
   if (typeof signal.value === 'boolean') {
     return signal.value ? 'Met' : 'Not detected';
   }
-  
+
   // For PR size, smaller is better
   if (signal.label.includes('PR size')) {
     return signal.value > threshold ? `${signal.value - threshold} lines over` : 'Met';
   }
-  
+
   // For percentages
   if (signal.label.includes('spread') || signal.label.includes('currency')) {
     return `${((threshold - signal.value) * 100).toFixed(0)}% gap`;
   }
-  
+
   // For counts
   return `${(threshold - signal.value).toFixed(1)} gap`;
 };
@@ -354,7 +354,7 @@ const calculateDelta = (signal, level) => {
 const determinePriority = (key) => {
   const highPriority = ['commitFreq', 'prSize', 'configFiles'];
   const mediumPriority = ['testSpread', 'docCurrency', 'dependencies'];
-  
+
   if (highPriority.includes(key)) return 'high';
   if (mediumPriority.includes(key)) return 'medium';
   return 'low';
@@ -365,9 +365,9 @@ export default function AITeamDashboard() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [filterLevel, setFilterLevel] = useState('all');
   const [sortBy, setSortBy] = useState('name');
-  
+
   const teams = useMemo(() => generateMockTeams(), []);
-  
+
   const teamsWithScores = useMemo(() => {
     return teams.map(team => ({
       ...team,
@@ -375,15 +375,15 @@ export default function AITeamDashboard() {
       gaps: null // Computed on demand
     }));
   }, [teams]);
-  
+
   const filteredTeams = useMemo(() => {
     let filtered = teamsWithScores;
-    
+
     if (filterLevel !== 'all') {
       const level = parseInt(filterLevel);
       filtered = filtered.filter(t => t.score.overall === level);
     }
-    
+
     // Sort
     filtered.sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
@@ -391,10 +391,10 @@ export default function AITeamDashboard() {
       if (sortBy === 'domain') return a.domain.localeCompare(b.domain);
       return 0;
     });
-    
+
     return filtered;
   }, [teamsWithScores, filterLevel, sortBy]);
-  
+
   const distribution = useMemo(() => {
     const dist = { l0: 0, l1: 0, l2: 0 };
     teamsWithScores.forEach(t => {
@@ -408,7 +408,7 @@ export default function AITeamDashboard() {
       { name: 'L2: AI-Native', count: dist.l2, level: 2 }
     ];
   }, [teamsWithScores]);
-  
+
   const selectedTeamWithGaps = useMemo(() => {
     if (!selectedTeam) return null;
     const team = teamsWithScores.find(t => t.id === selectedTeam);
@@ -418,7 +418,7 @@ export default function AITeamDashboard() {
       gaps: analyzeGaps(team, team.score)
     };
   }, [selectedTeam, teamsWithScores]);
-  
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       {/* Header */}
@@ -440,7 +440,7 @@ export default function AITeamDashboard() {
           </div>
         </div>
       </div>
-      
+
       {/* Distribution Overview */}
       <div className="max-w-7xl mx-auto px-6 -mt-8 mb-8">
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
@@ -449,17 +449,17 @@ export default function AITeamDashboard() {
             <BarChart data={distribution}>
               <XAxis dataKey="name" stroke="#64748b" />
               <YAxis stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1e293b', 
-                  border: 'none', 
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#1e293b',
+                  border: 'none',
                   borderRadius: '8px',
                   color: '#fff'
                 }}
               />
               <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                 {distribution.map((entry, index) => (
-                  <Cell 
+                  <Cell
                     key={`cell-${index}`}
                     fill={entry.level === 2 ? '#10b981' : entry.level === 1 ? '#f59e0b' : '#94a3b8'}
                   />
@@ -467,10 +467,10 @@ export default function AITeamDashboard() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          
+
           <div className="mt-6 grid grid-cols-3 gap-4">
             {distribution.map((item) => (
-              <div 
+              <div
                 key={item.name}
                 className="text-center p-4 rounded-lg bg-slate-50"
               >
@@ -481,7 +481,7 @@ export default function AITeamDashboard() {
           </div>
         </div>
       </div>
-      
+
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-6 mb-6">
         <div className="flex gap-4 items-center">
@@ -500,7 +500,7 @@ export default function AITeamDashboard() {
               <option value="0">L0: Not Yet</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Sort by
@@ -517,7 +517,7 @@ export default function AITeamDashboard() {
           </div>
         </div>
       </div>
-      
+
       {/* Teams Grid */}
       <div className="max-w-7xl mx-auto px-6 pb-12">
         <div className="grid grid-cols-1 gap-4">
@@ -531,7 +531,7 @@ export default function AITeamDashboard() {
           ))}
         </div>
       </div>
-      
+
       {/* Detail Panel */}
       {selectedTeamWithGaps && (
         <DetailPanel
@@ -546,15 +546,15 @@ export default function AITeamDashboard() {
 // Team Card Component
 function TeamCard({ team, isSelected, onSelect }) {
   const { name, domain, activeContributors, score, note, trajectory } = team;
-  
+
   const levelConfig = {
     0: { label: 'L0: Not Yet', color: 'bg-slate-100 text-slate-700', border: 'border-slate-300' },
     1: { label: 'L1: Integrating', color: 'bg-amber-100 text-amber-800', border: 'border-amber-300' },
     2: { label: 'L2: AI-Native', color: 'bg-emerald-100 text-emerald-800', border: 'border-emerald-300' }
   };
-  
+
   const config = levelConfig[score.overall];
-  
+
   return (
     <div
       onClick={onSelect}
@@ -569,7 +569,7 @@ function TeamCard({ team, isSelected, onSelect }) {
             <h3 className="text-lg font-bold text-slate-900">{name}</h3>
             <span className="text-sm text-slate-500">{domain}</span>
           </div>
-          
+
           <div className="flex items-center gap-4 mb-3">
             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${config.color}`}>
               {config.label}
@@ -584,21 +584,21 @@ function TeamCard({ team, isSelected, onSelect }) {
               </span>
             )}
           </div>
-          
+
           {note && (
             <div className="text-sm text-slate-600 italic">
               {note}
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           <DimensionBadge level={score.aiAdoption} label="AI" />
           <DimensionBadge level={score.engineeringPractices} label="Eng" />
           {isSelected ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </div>
       </div>
-      
+
       {isSelected && (
         <div className="mt-4 pt-4 border-t border-slate-200 text-sm text-slate-600">
           Click to view detailed gap analysis →
@@ -615,7 +615,7 @@ function DimensionBadge({ level, label }) {
     1: 'bg-amber-200 text-amber-800',
     2: 'bg-emerald-200 text-emerald-800'
   };
-  
+
   return (
     <div className={`px-2 py-1 rounded text-xs font-semibold ${colors[level]}`}>
       {label} L{level}
@@ -626,7 +626,7 @@ function DimensionBadge({ level, label }) {
 // Detail Panel Component
 function DetailPanel({ team, onClose }) {
   const { name, score, gaps, signals } = team;
-  
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto">
@@ -645,7 +645,7 @@ function DetailPanel({ team, onClose }) {
             </svg>
           </button>
         </div>
-        
+
         {/* Content */}
         <div className="p-6">
           {/* Score Summary */}
@@ -669,7 +669,7 @@ function DetailPanel({ team, onClose }) {
               />
             </div>
           </div>
-          
+
           {/* Gap Analysis */}
           {gaps.length > 0 && (
             <div className="mb-8">
@@ -683,7 +683,7 @@ function DetailPanel({ team, onClose }) {
               </div>
             </div>
           )}
-          
+
           {score.overall === 2 && gaps.length === 0 && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-start gap-3 mb-8">
               <CheckCircle className="text-emerald-600 mt-0.5" size={20} />
@@ -695,11 +695,11 @@ function DetailPanel({ team, onClose }) {
               </div>
             </div>
           )}
-          
+
           {/* Signals Detail */}
           <div>
             <h3 className="text-lg font-bold text-slate-900 mb-4">Signal Details</h3>
-            
+
             <div className="mb-6">
               <h4 className="font-semibold text-slate-700 mb-3">AI Adoption Dimension</h4>
               <div className="space-y-2">
@@ -708,7 +708,7 @@ function DetailPanel({ team, onClose }) {
                 ))}
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold text-slate-700 mb-3">Engineering Practices Dimension</h4>
               <div className="space-y-2">
@@ -731,7 +731,7 @@ function ScoreCard({ title, level, description }) {
     1: 'from-amber-500 to-amber-600',
     2: 'from-emerald-500 to-emerald-600'
   };
-  
+
   return (
     <div className={`bg-gradient-to-br ${colors[level]} rounded-lg p-4 text-white`}>
       <div className="text-sm opacity-90 mb-1">{title}</div>
@@ -748,10 +748,10 @@ function GapCard({ gap }) {
     medium: { color: 'bg-amber-50 border-amber-200 text-amber-900', icon: MinusCircle, iconColor: 'text-amber-600' },
     low: { color: 'bg-blue-50 border-blue-200 text-blue-900', icon: MinusCircle, iconColor: 'text-blue-600' }
   };
-  
+
   const config = priorityConfig[gap.priority];
   const Icon = config.icon;
-  
+
   return (
     <div className={`border rounded-lg p-4 ${config.color}`}>
       <div className="flex items-start gap-3">
@@ -776,7 +776,7 @@ function GapCard({ gap }) {
 // Signal Row
 function SignalRow({ signal, targetLevel }) {
   const isMet = targetLevel === 1 ? signal.met_l1 : signal.met_l2;
-  
+
   return (
     <div className="flex items-center justify-between py-2 px-3 rounded bg-slate-50">
       <div className="flex items-center gap-2">

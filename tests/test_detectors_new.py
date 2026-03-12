@@ -102,7 +102,7 @@ class TestCommitPatternDetectorImprovements:
     def test_detects_commits_with_bullets(self) -> None:
         """Test detection of commits with bullet points."""
         message = """feat: Implement user dashboard
-        
+
 - Add user statistics widget
 - Implement activity feed
 - Add notification panel"""

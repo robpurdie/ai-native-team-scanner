@@ -7,11 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from scanner.cli import main
-from scanner.models import (
-    DimensionScore,
-    ObservationWindow,
-    TeamMaturityScore,
-)
+from scanner.models import DimensionScore, ObservationWindow, TeamMaturityScore
 
 
 def create_mock_score(repo_name="owner/repo", level=0):
