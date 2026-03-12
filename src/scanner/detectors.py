@@ -245,6 +245,7 @@ class CICDDetector:
     """Detect CI/CD configuration."""
 
     CI_CD_PATTERNS = [
+        # Traditional CI/CD
         ".github/workflows/",
         ".gitlab-ci.yml",
         ".circleci/",
@@ -253,6 +254,16 @@ class CICDDetector:
         "azure-pipelines.yml",
         ".drone.yml",
         "bitbucket-pipelines.yml",
+        # Modern deployment platforms
+        "vercel.json",
+        "netlify.toml",
+        ".netlify/",
+        "railway.json",
+        "railway.toml",
+        "render.yaml",
+        "cloudbuild.yaml",
+        "buildspec.yml",
+        ".buildkite/",
     ]
 
     @classmethod
@@ -267,17 +278,20 @@ class CICDDetector:
         """
         ci_cd_files = []
 
+        # Try file-based detection first
         try:
-            # Get all files in root
+            # Get all files and directories in root
             contents = repo.get_contents("")
             content_list = contents if isinstance(contents, list) else [contents]
-            root_files = [item.path for item in content_list]
+            root_items = [item.path for item in content_list]  # Include both files and dirs
 
             # Check for CI/CD patterns
             for pattern in cls.CI_CD_PATTERNS:
-                for file_path in root_files:
-                    if pattern in file_path:
-                        ci_cd_files.append(file_path)
+                for item_path in root_items:
+                    # Match pattern with or without trailing slash
+                    pattern_base = pattern.rstrip("/")
+                    if pattern in item_path or pattern_base == item_path:
+                        ci_cd_files.append(item_path)
 
             # Special check for .github/workflows
             try:
@@ -286,11 +300,52 @@ class CICDDetector:
                     ci_cd_files.append(".github/workflows/")
             except Exception:
                 pass
-
-            return len(ci_cd_files) > 0, ci_cd_files
-
         except Exception:
-            return False, []
+            # If file detection fails, that's okay - we'll try behavioral detection
+            pass
+
+        # Behavioral detection via GitHub API (fallback)
+        if len(ci_cd_files) == 0:
+            behavioral_signals = cls._detect_behavioral_cicd(repo)
+            ci_cd_files.extend(behavioral_signals)
+
+        return len(ci_cd_files) > 0, ci_cd_files
+
+    @classmethod
+    def _detect_behavioral_cicd(cls, repo: Repository) -> List[str]:
+        """Detect CI/CD through behavioral signals (GitHub API).
+
+        Args:
+            repo: GitHub repository object
+
+        Returns:
+            List of detected behavioral signals
+        """
+        signals = []
+
+        try:
+            # Check for GitHub Actions workflows via API
+            workflows = repo.get_workflows()
+            if workflows.totalCount > 0:
+                signals.append(f"GitHub Actions ({workflows.totalCount} workflows)")
+        except Exception:
+            pass
+
+        try:
+            # Check recent commits for status checks
+            commits = list(repo.get_commits()[:5])  # Sample recent commits
+            for commit in commits:
+                try:
+                    statuses = commit.get_combined_status()
+                    if statuses.total_count > 0:
+                        signals.append("Commit status checks detected")
+                        break
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        return signals
 
 
 class DocumentationDetector:

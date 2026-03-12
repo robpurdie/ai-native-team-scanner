@@ -30,8 +30,9 @@ repos:
     rev: 1.7.9
     hooks:
       - id: bandit
-        args: ['-r', 'src', '-ll']
+        args: ['-ll']
         files: ^src/
+        exclude: ^tests/
 
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
