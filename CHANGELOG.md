@@ -5,6 +5,33 @@ All notable changes to the AI-Native Team Scanner will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-03-12
+
+### Fixed
+- Fixed black formatting issues in `src/scanner/detectors.py` and `tests/test_detectors_new.py`
+- Fixed flake8 line length violations (E501 errors) by splitting long regex patterns
+- Added missing type annotations (`-> None`) to all 31 test methods in `test_detectors_new.py`
+- Fixed AI detection pattern to match both "assistance" and "assisted" variants
+- Fixed trailing whitespace in test files (W293 warning)
+- Fixed CI workflow to run on `dev` branch in addition to `main`
+
+### Added
+- Enabled pre-commit hooks for automated code quality enforcement
+- Created `.secrets.baseline` for detect-secrets configuration
+- Added `verify-fixes.sh` script for local verification
+- Added comprehensive session documentation (`FIXES_APPLIED.md`, `SESSION_SUMMARY_2026-03-12.md`)
+
+### Changed
+- Updated pre-commit bandit hook to version 1.7.9 with proper file filtering
+- Pre-commit hooks now automatically fix formatting issues before commit
+- CI pipeline now runs on both `main` and `dev` branches
+
+### Internal
+- All 86 tests passing with 85% coverage
+- CI/CD pipeline fully green on all branches
+- Pre-commit hooks prevent committing code that would fail CI
+- Fixed test that was failing due to AI pattern not matching "AI assistance"
+
 ## [2.0.0] - 2026-03-11
 
 ### 🎉 Major Release - Detector Improvements
@@ -133,5 +160,6 @@ Real-world impact on test repositories:
 
 ---
 
+[2.0.1]: https://github.com/robpurdie/ai-native-team-scanner/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/robpurdie/ai-native-team-scanner/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/robpurdie/ai-native-team-scanner/releases/tag/v1.0.0
