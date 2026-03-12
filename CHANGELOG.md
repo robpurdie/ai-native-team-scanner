@@ -5,6 +5,30 @@ All notable changes to the AI-Native Team Scanner will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-03-12
+
+### Added
+- **Modern Platform CI/CD Detection**: Added detection for Vercel, Netlify, Railway, Render, Google Cloud Build, AWS CodeBuild, and Buildkite
+- **Behavioral CI/CD Detection**: Added GitHub API fallback detection for workflows and commit status checks when config files aren't present
+- Added 12 new tests for enhanced CI/CD detection (all passing)
+- Added 5 new tests for corrected AI adoption scoring (all passing)
+- Created `CICD_DETECTION_STRATEGY.md` documenting the detection approach
+
+### Fixed
+- **Critical Bug**: AI Adoption Level 1 no longer incorrectly requires config file - now correctly evaluates as: config file OR 20%+ AI commits
+- **Critical Bug**: AI Adoption Level 2 no longer incorrectly requires config file - now correctly evaluates as: 60%+ AI commits AND 80%+ contributors
+- Fixed pre-commit bandit configuration to prevent false failures
+
+### Changed
+- CI/CD detection now checks both files/directories (not just files)
+- CI/CD pattern matching now handles trailing slashes correctly
+
+### Validation
+- First validated **Level 1** repository: `vercel/ai` (AI Adoption L2, Engineering L1, Overall L1)
+- Scanned multiple repos to validate maturity model: rails/rails, langgenius/dify, anthropics/anthropic-sdk-python, langchain-ai/langchain
+- 103 tests passing (up from 86), 85% coverage maintained
+- All CI checks passing on main branch
+
 ## [2.0.1] - 2026-03-12
 
 ### Fixed
