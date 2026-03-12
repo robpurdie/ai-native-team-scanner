@@ -227,14 +227,13 @@ class TeamScorer:
         }
 
         # Determine level
-        if (
-            thresholds_met["config_file"]
-            and thresholds_met["level2_commit_rate"]
-            and thresholds_met["level2_contributor_rate"]
-        ):
+        # Level 2: High commit rate (60%+) AND high contributor rate (80%+)
+        # Config file is a signal but not required
+        if thresholds_met["level2_commit_rate"] and thresholds_met["level2_contributor_rate"]:
             level = 2
             details = "AI-Native: Strong AI adoption across team"
-        elif thresholds_met["config_file"] and thresholds_met["level1_commit_rate"]:
+        # Level 1: Moderate commit rate (20%+) OR config file present
+        elif thresholds_met["level1_commit_rate"] or thresholds_met["config_file"]:
             level = 1
             details = "Integrating: Building AI adoption patterns"
         else:
