@@ -68,33 +68,30 @@ class CommitPatternDetector:
     # Patterns that suggest AI assistance
     AI_COMMIT_PATTERNS = [
         # Explicit AI tool mentions (keep existing - high confidence)
-    r"(?i)\b(copilot|claude|cursor|aider|chatgpt|gpt-?4|codewhisperer|tabnine)\b",
-    r"(?i)co-?authored-by.*(copilot|claude|ai|assistant)",
-    r"(?i)\bai\b.*\b(assisted|generated|suggested)\b",
-    
-    # Verbose conventional commits (AI tends to be detailed)
-    r"(?i)^(feat|fix|refactor|chore|docs|style|test|perf)(\([^)]+\))?: (add|update|improve|enhance|optimize|refactor).{40,}",
-    
-    # Multiple sentences with connectors (AI pattern)
-    r"\.[\s\n]+(This|Additionally|Also|Furthermore|Moreover|It also)",
-    
-    # Bullet points in commit messages (common AI pattern)
-    r"(?m)^[-*•]\s+",
-    
-    # Specific improvement language (AI often uses this phrasing)
-    r"(?i)\b(improve|enhance|optimize|refactor|streamline)\b.{0,30}\b(performance|readability|maintainability|efficiency|code quality)\b",
-    
-    # Documentation additions (AI frequently adds comprehensive docs)
-    r"(?i)^docs?(\([^)]+\))?: (add|update|improve).{0,30}\b(documentation|docstring|comment|readme|guide)\b",
-    
-    # Test additions with detail (AI often suggests comprehensive tests)
-    r"(?i)^test(\([^)]+\))?: (add|update).{0,30}\b(tests?|specs?|coverage|unit tests?|integration tests?)\b",
-    
-    # Type safety improvements (AI commonly suggests this)
-    r"(?i)(add|update|improve).{0,30}\b(type annotation|typing|type hint|interface|type safety)\b",
-    
-    # Error handling improvements (AI pattern)
-    r"(?i)(add|improve).{0,30}\b(error handling|exception|validation|error message)\b",
+        r"(?i)\b(copilot|claude|cursor|aider|chatgpt|gpt-?4|codewhisperer|tabnine)\b",
+        r"(?i)co-?authored-by.*(copilot|claude|ai|assistant)",
+        r"(?i)\bai\b.*(assist|generat|suggest)",
+        # Verbose conventional commits (AI tends to be detailed)
+        r"(?i)^(feat|fix|refactor|chore|docs|style|test|perf)(\([^)]+\))?: "
+        r"(add|update|improve|enhance|optimize|refactor).{40,}",
+        # Multiple sentences with connectors (AI pattern)
+        r"\.[\s\n]+(This|Additionally|Also|Furthermore|Moreover|It also)",
+        # Bullet points in commit messages (common AI pattern)
+        r"(?m)^[-*•]\s+",
+        # Specific improvement language (AI often uses this phrasing)
+        r"(?i)\b(improve|enhance|optimize|refactor|streamline)\b.{0,30}"
+        r"\b(performance|readability|maintainability|efficiency|code quality)\b",
+        # Documentation additions (AI frequently adds comprehensive docs)
+        r"(?i)^docs?(\([^)]+\))?: (add|update|improve).{0,30}"
+        r"\b(documentation|docstring|comment|readme|guide)\b",
+        # Test additions with detail (AI often suggests comprehensive tests)
+        r"(?i)^test(\([^)]+\))?: (add|update).{0,30}"
+        r"\b(tests?|specs?|coverage|unit tests?|integration tests?)\b",
+        # Type safety improvements (AI commonly suggests this)
+        r"(?i)(add|update|improve).{0,30}"
+        r"\b(type annotation|typing|type hint|interface|type safety)\b",
+        # Error handling improvements (AI pattern)
+        r"(?i)(add|improve).{0,30}\b(error handling|exception|validation|error message)\b",
     ]
 
     @classmethod
@@ -140,53 +137,53 @@ class FileTypeDetector:
 
     # Test file patterns by language
     TEST_PATTERNS = {
-       "python": [
-           r"test_.*\.py$", 
-           r".*_test\.py$", 
-           r"tests?/.*\.py$",
-           r".*_spec\.py$",      # pytest-bdd style
-       ],
-       "javascript": [
-           r".*\.test\.(js|jsx|mjs)$",
-           r".*\.spec\.(js|jsx|mjs)$",
-           r"__tests__/.*\.(js|jsx|mjs)$",
-           r"tests?/.*\.(js|jsx|mjs)$",
-       ],
-       "typescript": [
-           r".*\.test\.(ts|tsx)$",
-           r".*\.spec\.(ts|tsx)$",
-           r"__tests__/.*\.(ts|tsx)$",
-           r"tests?/.*\.(ts|tsx)$",
-       ],
-       "java": [
-           r".*Test\.java$",
-           r".*Tests\.java$",
-           r"src/test/.*\.java$",
-           r"test/.*\.java$",
-       ],
-       "go": [
-           r".*_test\.go$",
-       ],
-       "ruby": [
-           r".*_spec\.rb$",      # RSpec
-           r"spec/.*\.rb$",      # RSpec  
-           r".*_test\.rb$",      # Minitest
-           r"test/.*\.rb$",      # Minitest
-       ],
-       "rust": [
-           r"tests/.*\.rs$",
-           r".*_test\.rs$",
-       ],
-       "csharp": [
-           r".*Test\.cs$",
-           r".*Tests\.cs$",
-           r"test/.*\.cs$",
-       ],
-       "php": [
-           r".*Test\.php$",
-           r"tests?/.*\.php$",
-       ],
-   }
+        "python": [
+            r"test_.*\.py$",
+            r".*_test\.py$",
+            r"tests?/.*\.py$",
+            r".*_spec\.py$",  # pytest-bdd style
+        ],
+        "javascript": [
+            r".*\.test\.(js|jsx|mjs)$",
+            r".*\.spec\.(js|jsx|mjs)$",
+            r"__tests__/.*\.(js|jsx|mjs)$",
+            r"tests?/.*\.(js|jsx|mjs)$",
+        ],
+        "typescript": [
+            r".*\.test\.(ts|tsx)$",
+            r".*\.spec\.(ts|tsx)$",
+            r"__tests__/.*\.(ts|tsx)$",
+            r"tests?/.*\.(ts|tsx)$",
+        ],
+        "java": [
+            r".*Test\.java$",
+            r".*Tests\.java$",
+            r"src/test/.*\.java$",
+            r"test/.*\.java$",
+        ],
+        "go": [
+            r".*_test\.go$",
+        ],
+        "ruby": [
+            r".*_spec\.rb$",  # RSpec
+            r"spec/.*\.rb$",  # RSpec
+            r".*_test\.rb$",  # Minitest
+            r"test/.*\.rb$",  # Minitest
+        ],
+        "rust": [
+            r"tests/.*\.rs$",
+            r".*_test\.rs$",
+        ],
+        "csharp": [
+            r".*Test\.cs$",
+            r".*Tests\.cs$",
+            r"test/.*\.cs$",
+        ],
+        "php": [
+            r".*Test\.php$",
+            r"tests?/.*\.php$",
+        ],
+    }
 
     # Code file extensions (not comprehensive, but common ones)
     CODE_EXTENSIONS = {
@@ -205,12 +202,12 @@ class FileTypeDetector:
         ".cs",
         ".swift",
         ".kt",
-        ".scala",      # Scala
-        ".clj",        # Clojure
-        ".cljs",       # ClojureScript
-        ".dart",       # Dart/Flutter
-        ".vue",        # Vue
-        ".svelte",     # Svelte
+        ".scala",  # Scala
+        ".clj",  # Clojure
+        ".cljs",  # ClojureScript
+        ".dart",  # Dart/Flutter
+        ".vue",  # Vue
+        ".svelte",  # Svelte
     }
 
     @classmethod
