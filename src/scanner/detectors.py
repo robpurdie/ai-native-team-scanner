@@ -333,7 +333,9 @@ class CICDDetector:
 
         try:
             # Check recent commits for status checks
-            commits = list(repo.get_commits()[:5])  # Sample recent commits
+            from github.Commit import Commit
+
+            commits: List[Commit] = list(repo.get_commits()[:5])  # Sample recent commits
             for commit in commits:
                 try:
                     statuses = commit.get_combined_status()
