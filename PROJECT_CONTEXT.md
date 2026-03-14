@@ -3,7 +3,7 @@
 
 ## Repository Information
 - **GitHub Repo**: https://github.com/robpurdie/ai-native-team-scanner
-- **Current Version**: v2.1.0 on `main`; Phase 1 features on `dev` (pending release)
+- **Current Version**: v2.1.0 on `main`; Phase 1 + report quality fixes on `dev` (pending release)
 - **Branch Strategy**: `main` = stable releases, `dev` = active development
 - **Local Path**: ~/Apps/Aints
 
@@ -32,44 +32,89 @@ The scanner is **fully functional** and has been validated against real reposito
 - ✅ Verbose CLI mode with detailed progress reporting
 
 **Test Coverage:**
-- ✅ 165 tests passing
+- ✅ 170+ tests passing
 - ✅ 85%+ code coverage
 - ✅ All CI checks green
 - ✅ Pre-commit hooks prevent regressions
+- ✅ Conventional commit enforcement (commit-msg hook) — 100% conventional commits required
 
-**Validation:**
-- ✅ First **Level 1** repository validated: `vercel/ai`
-  - AI Adoption: L2 (87% AI commits, 90% contributor coverage)
-  - Engineering: L1 (16.5% tests, 55% conventional commits)
-  - Overall: L1 (minimum of two dimensions)
-- ✅ Scanned multiple production repos: rails/rails, langgenius/dify, anthropics/anthropic-sdk-python, langchain-ai/langchain
-- ✅ Maturity model proven to work as designed
+**Validation — Real Repos Scanned:**
+- ✅ `vercel/ai` — L1 (AI L2, Engineering L1) — engineering is limiting dimension
+- ✅ `microsoft/vscode-python` — L0 (AI L1, Engineering L0) — only gap is conventional commits
+- ✅ `cline/cline` — L1 (AI L2, Engineering L1) — same pattern as vercel/ai
+- ✅ `robpurdie/ai-native-team-scanner` — L1 (AI L1, Engineering L1) — our own repo
 
 ### ✅ Phase 1 Complete — Results Are Now Actionable
 
 **Delivered (March 14, 2026, committed to `dev`):**
 - **Composite Scoring** — 0-100 scores on both dimensions for ranking within levels
-  - AI: `(commit_rate×60) + (contributor_coverage×30) + (config_file×10)`
-  - Eng: `(test_ratio×30) + (conventional_rate×40) + (ci_cd×20) + (readme×10)`
 - **Gap Analysis Engine** — concrete next steps with raw counts, not just rates
-  - Handles L0→L1 and L1→L2 on both dimensions
-  - Identifies limiting dimension holding back overall level
 - **Report Generator** — full markdown reports, no LLM dependency
-  - Seven sections: header, executive summary, AI adoption, engineering,
-    gap analysis, strategic roadmap, appendix
-  - Single `TeamMaturityScore` input; `save()` writes to file
 - **CLI `--report` flag** — generates markdown alongside JSON output
 - **Signals stored on `TeamMaturityScore`** — self-contained for all downstream consumers
+
+### ✅ Significant Report Quality Improvements (March 14, 2026)
+
+**Executive Summary:**
+- Description is now dimension-aware, not generic level description
+- Limiting dimension statement explains consequence for AI-Native goal
+- Engineering limiting: warns about technical debt risk
+- AI limiting: calls out unrealised productivity gains
+
+**Strategic Roadmap:**
+- L0 and L1 roadmaps now suppress guidance for signals already met
+- Both levels check individual signal values against thresholds
+- Example: 55% test file ratio → no suggestion to "deepen test coverage to 25%"
+
+**Gap Analysis:**
+- team_gaps() caps dimension targets at team's next overall level
+- AI at L1 for an L0 team no longer chases L2 while engineering hasn't reached L1
+
+**Language and Framing:**
+- "Test file ratio" not "test coverage" — different measurements
+- AI config file described as "working agreement with AI tools"
+- Config file absence explained with meaning, not just instruction
+
+**Threshold Changes:**
+- `min_contributors: 2` → `min_commits: 10`
+- Human-AI pairs are legitimate team units
+- Commit volume is the right proxy for sufficient signal
 
 ### ⏭️ Current Focus: Phase 2 — Enable Organizational Comparison
 
 **Next up (see ROADMAP.md and BACKLOG.md):**
+- **P0: Git Trees API** — replace recursive file walking (prerequisite for batch scanning)
 - **P0: Batch Scanning Mode** — scan multiple repos in one CLI invocation
 - **P0: Comparative Analysis Engine** — percentiles, rankings, top performers
 - **P0: Comparative Report Generator** — org-wide dashboard report
 
-**Recommended next action:** Real-world validation — scan `vercel/ai` with `--report` flag
-and review generated report quality before building Phase 2.
+**Also flagged for future work:**
+- Better AI commit detection: commit message + diff size correlation (declared vs actual AI use)
+- Distinguishing AI as passive tool vs. autonomous agent
+
+## Key Design Decisions Made This Session
+
+### Human-AI Teams
+A human-AI pair is a legitimate team unit. The old `min_contributors: 2` threshold
+reflected pre-AI assumptions. Replaced with `min_commits: 10` — commit volume is
+the right proxy for sufficient signal.
+
+### AI Config Files as Soft Constraints
+`.cursorrules`, `CLAUDE.md`, and similar files are soft constraints — stated intent,
+not enforced standards. Their value is in the *act of writing them* (evidence of
+deliberate, collective thinking) not in enforcement. The scanner treats them as a
+signal of intentionality, not compliance. The engineering practices dimension
+(pre-commit hooks, CI/CD, test discipline) provides the enforcement layer.
+
+### Conventional Commits Now Enforced
+Added `conventional-pre-commit` hook at `commit-msg` stage. Every commit must
+follow conventional format — soft constraint becomes hard constraint.
+Run `pre-commit install --hook-type commit-msg` on any new clone.
+
+### Emerging Team Model
+Small teams of 2-3 humans + multiple AI agents as genuine team members.
+Same network complexity constraint (N(N-1)/2) that drove Agile small-team
+thinking applies to human-AI teams. Documented in METHODOLOGY.md.
 
 ## Project Structure
 
@@ -85,28 +130,17 @@ ai-native-team-scanner/
 │   ├── scoring.py          # ✅ Two-dimensional maturity scoring + composite scores
 │   ├── gap_analysis.py     # ✅ Gap analysis engine (Phase 1)
 │   └── reporter.py         # ✅ Markdown report generator (Phase 1)
-├── tests/
-│   ├── test_analyzer.py          # ✅ Commit analysis tests
-│   ├── test_cli.py               # ✅ CLI tests
-│   ├── test_detectors.py         # ✅ Signal detection tests (legacy)
-│   ├── test_detectors_new.py     # ✅ Enhanced detector tests
-│   ├── test_cicd_enhanced.py     # ✅ Modern CI/CD detection tests
-│   ├── test_scoring_fix.py       # ✅ AI adoption scoring fix tests
-│   ├── test_composite_scoring.py # ✅ Composite scoring tests (Phase 1)
-│   ├── test_gap_analysis.py      # ✅ Gap analysis engine tests (Phase 1)
-│   ├── test_reporter.py          # ✅ Report generator tests (Phase 1)
-│   └── test_github_client.py     # ✅ GitHub client tests
-├── results/                # Scan outputs (gitignored)
+├── tests/                  # ✅ 170+ tests, 85%+ coverage
+├── CLAUDE.md               # ✅ Working agreement with AI tools
 ├── VISION.md              # ✅ Project vision and purpose
 ├── MATURITY_MODEL.md      # ✅ 3-level framework definition
-├── METHODOLOGY.md         # ✅ Technical methodology
+├── METHODOLOGY.md         # ✅ Technical methodology (updated with team model, soft constraints)
 ├── ARCHITECTURE.md        # ✅ System design
 ├── ROADMAP.md             # ✅ Strategic roadmap (4 phases, Q2 2026 → 2027+)
 ├── BACKLOG.md             # ✅ Prioritized feature backlog (P0-P3)
 ├── DEVELOPMENT.md         # ✅ Dev workflow and practices
 ├── QUICKSTART.md          # ✅ Setup instructions
 ├── CHANGELOG.md           # ✅ Version history
-├── CICD_DETECTION_STRATEGY.md  # ✅ CI/CD detection approach
 └── README.md              # ✅ Project overview
 ```
 
@@ -119,27 +153,29 @@ ai-native-team-scanner/
 - **Normalization**: All metrics normalized by active contributors
 - **Observation Window**: 90 days (rolling)
 - **Sustained Pattern**: L2 requires consistency across 2 consecutive windows
+- **Minimum Signal**: 10 commits in window (not 2 contributors)
 
 ### AI Adoption Thresholds
 - **L1**: Config file OR 20%+ AI-assisted commits
 - **L2**: 60%+ AI-assisted commits AND 80%+ contributor coverage
-- Config file is a signal, not a requirement
+- Config file is a signal of intentionality, not a requirement
 
 ### Engineering Practice Thresholds
-- **L1**: 15%+ tests, 30%+ conventional commits, CI/CD present, README present
-- **L2**: 25%+ tests, 70%+ conventional commits, CI/CD present, README present
+- **L1**: 15%+ test file ratio, 30%+ conventional commits, CI/CD present, README present
+- **L2**: 25%+ test file ratio, 70%+ conventional commits, CI/CD present, README present
 
 ### Composite Score Formulas
 - **AI Adoption**: `(ai_commit_rate × 60) + (contributor_coverage × 30) + (config_file × 10)`
 - **Engineering**: `(test_ratio × 30) + (conventional_rate × 40) + (ci_cd × 20) + (readme × 10)`
 - Both produce 0–100; capped defensively; stored on `DimensionScore.composite_score`
 
-### CI/CD Detection
-**Traditional Platforms:** GitHub Actions, GitLab CI, CircleCI, Jenkins, Travis CI, Azure Pipelines, Drone, Bitbucket Pipelines
-
-**Modern Platforms:** Vercel, Netlify, Railway, Render, Google Cloud Build, AWS CodeBuild, Buildkite
-
-**Behavioral Detection (Fallback):** GitHub API queries for workflows and commit status checks when no config files found
+### AI Config Files Detected
+- `CLAUDE.md` (Claude/Anthropic) — our own working agreement
+- `.cursorrules` (Cursor)
+- `.github/copilot-instructions.md` (GitHub Copilot)
+- `.aider.conf.yml` (Aider)
+- `.continue/config.json` (Continue)
+- `.claude.json`, `claude_config.json`, `.ai/config.json` (generic)
 
 ## Development Workflow
 
@@ -148,53 +184,42 @@ ai-native-team-scanner/
 - `dev` - Active development, all new work happens here
 
 **Pre-Commit Quality Gates:**
-- black (code formatting)
-- isort (import sorting)
-- flake8 (linting, 100-char line length)
-- mypy (type checking)
-- bandit (security scanning, src/ only)
-- detect-secrets (secret detection)
+- black, isort, flake8 (100-char), mypy, bandit, detect-secrets
+- **conventional-pre-commit** (commit-msg stage) — enforces conventional commit format
+- Run `pre-commit install --hook-type commit-msg` on new clones
 
-**CI/CD Pipeline (GitHub Actions):**
-- Runs on push to `main` and `dev` branches
-- Python 3.10 and 3.11 matrix
-- All quality checks + pytest with 80% coverage threshold
-- Codecov integration
-
-**Development Process:**
-1. Work on `dev` branch
-2. Follow TDD: write tests first, then implementation
-3. Pre-commit hooks enforce quality
-4. Push to `dev`, verify CI passes
-5. Merge to `main` when ready to release
-6. Tag release, update CHANGELOG.md
+**Full local workflow before committing:**
+```bash
+black src/ tests/ && isort src/ tests/ && flake8 src/ tests/ && mypy src/ && pytest --cov=src --cov-report=term-missing --cov-fail-under=80
+```
 
 ## Usage
 
-### Scanning a Repository
 ```bash
 # Basic scan
 python -m scanner.cli owner/repo --output results/scan.json
 
-# Verbose mode (shows progress)
-python -m scanner.cli owner/repo --output results/scan.json --verbose
-
-# Generate markdown report (Phase 1)
+# With markdown report
 python -m scanner.cli owner/repo --output results/scan.json --report results/report.md
 
-# Example
-python -m scanner.cli vercel/ai --output results/vercel_ai.json --report results/vercel_ai.md --verbose
+# Verbose
+python -m scanner.cli owner/repo --output results/scan.json --report results/report.md --verbose
 ```
 
 ## Important Notes
 
 - **No organization-specific names** in public GitHub documentation
-- **High verifier audience** - methodology must be precise and defensible
-- **TDD required** - all code changes must have tests written first
-- **Never lower coverage thresholds** - write proper tests instead
-- **Never commit without local tests passing** - strict discipline
-- **Done means working software** - not design artifacts or documentation
+- **High verifier audience** — methodology must be precise and defensible
+- **TDD required** — all code changes must have tests written first
+- **Never lower coverage thresholds** — write proper tests instead
+- **Never commit without local tests passing** — strict discipline
+- **Done means working software** — not design artifacts or documentation
+- **Conventional commits required** — enforced by pre-commit hook
 
 ---
 
-**For Claude**: Read this file at session start to establish context. Phase 1 (composite scoring, gap analysis, report generator) is complete on `dev`. Current focus is Phase 2 (batch scanning and organizational comparison). See ROADMAP.md and BACKLOG.md for strategic direction and prioritized features.
+**For Claude**: Read this file at session start to establish context. Phase 1 complete on `dev`.
+Current focus is Phase 2 (batch scanning and organizational comparison). The report quality
+work from March 14 is significant — many bugs fixed, language improved, new threshold logic.
+See ROADMAP.md and BACKLOG.md for what's next. Run `pre-commit install --hook-type commit-msg`
+if starting fresh on a new clone.
