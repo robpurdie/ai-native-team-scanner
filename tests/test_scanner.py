@@ -7,7 +7,7 @@ from scanner import __version__
 
 def test_version() -> None:
     """Test that version is defined."""
-    assert __version__ == "0.1.0"
+    assert __version__ == "3.0.0"
 
 
 def test_imports() -> None:
