@@ -215,7 +215,7 @@ This is a significant undercount. A team using AI deeply but writing clean, prof
 
 **Implication for Cisco:** Teams may be classified as "Not Yet" or "Integrating" when they are in fact deeply AI-integrated. Any coaching intervention based solely on scanner results risks being misdirected. Qualitative validation — asking teams directly about their AI tool usage — should accompany scanner results, especially at L0.
 
-**Planned improvement (Phase 2 P0):** Commit message + diff size correlation. A short commit message paired with a large, multi-file diff is a strong behavioural signal of AI-assisted work. Humans writing 200 lines across 8 files typically write longer commit messages. This signal requires no declared AI use and cannot be gamed by commit message style.
+**Planned improvement (Phase 2 P0):** Expand declared signal detection. Rather than inferring AI involvement from behavioural patterns (e.g. short message + large diff), the scanner will detect more forms of declared AI use: AI attribution in code comments and docstrings, GitHub Copilot commit metadata, AI-generated PR descriptions, and broader co-author tag patterns. Behavioural inference was considered and rejected — undercounting is a known, documentable limitation, but overcounting based on inference produces silent errors that erode trust in scores.
 
 ### 3. Proxy signals
 Several signals (conventional commits, commit frequency) are proxies, not direct measurements. They correlate with AI-native working but aren't definitive proof.
