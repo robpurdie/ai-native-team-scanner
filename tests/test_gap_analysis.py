@@ -356,6 +356,74 @@ class TestTeamGapAnalysis:
         assert result["limiting_dimension"] == "Engineering Practices"
         assert result["overall_level"] == 0  # min of two dimensions
 
+    def test_l0_team_ai_at_l1_gaps_target_l1_not_l2(self) -> None:
+        """For an L0 team where AI is already L1, AI gaps should target L1 completion
+        context (show as met), not chase L2 while engineering hasn't reached L1 yet."""
+        # vscode-python pattern: AI L1, Eng L0 -> overall L0
+        # AI gaps in team context should not be pushing toward L2
+        ai_signals = AIAdoptionSignals(
+            config_file_present=False,
+            ai_assisted_commit_rate=0.50,
+            ai_assisted_commit_count=22,
+            total_commits=44,
+            contributors_with_ai_patterns=4,
+            total_contributors=8,
+            contributor_ai_rate=0.50,
+        )
+        eng_signals = EngineeringSignals(
+            test_file_count=563,
+            total_code_files=1139,
+            test_file_ratio=0.494,
+            conventional_commit_count=4,
+            total_commits=44,
+            conventional_commit_rate=0.091,
+            ci_cd_present=True,
+            readme_present=True,
+        )
+        ai_score = TeamScorer()._score_ai_adoption(ai_signals)  # L1
+        eng_score = TeamScorer()._score_engineering(eng_signals)  # L0
+        assert ai_score.level == 1
+        assert eng_score.level == 0
+
+        analyzer = GapAnalyzer()
+        result = analyzer.team_gaps(ai_score, ai_signals, eng_score, eng_signals)
+
+        # Overall is L0, so team target is L1
+        assert result["overall_level"] == 0
+        # AI is already at or above team target level (L1) — gaps should reflect this
+        assert result["ai_adoption"]["target_level"] == 1  # team target, not dimension's L2
+        assert result["ai_adoption"]["already_meets_team_target"] is True
+
+    def test_l0_team_eng_gaps_cap_at_l1(self) -> None:
+        """For an L0 team, engineering gaps should target L1 only."""
+        ai_signals = AIAdoptionSignals(
+            config_file_present=False,
+            ai_assisted_commit_rate=0.50,
+            ai_assisted_commit_count=50,
+            total_commits=100,
+            contributors_with_ai_patterns=5,
+            total_contributors=10,
+            contributor_ai_rate=0.50,
+        )
+        eng_signals = EngineeringSignals(
+            test_file_count=5,
+            total_code_files=100,
+            test_file_ratio=0.05,
+            conventional_commit_count=5,
+            total_commits=100,
+            conventional_commit_rate=0.05,
+            ci_cd_present=False,
+            readme_present=False,
+        )
+        ai_score = TeamScorer()._score_ai_adoption(ai_signals)  # L1
+        eng_score = TeamScorer()._score_engineering(eng_signals)  # L0
+
+        analyzer = GapAnalyzer()
+        result = analyzer.team_gaps(ai_score, ai_signals, eng_score, eng_signals)
+
+        # Engineering gaps should target L1 (team's next level), not L2
+        assert result["engineering"]["target_level"] == 1
+
     def test_both_dimensions_at_l2_no_limiting(self) -> None:
         """When both dimensions are L2, there is no limiting dimension."""
         ai_signals = AIAdoptionSignals(

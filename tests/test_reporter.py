@@ -464,10 +464,12 @@ class TestReportContent:
         assert "35%" in report or "35" in report  # 35% AI commit rate
 
     def test_report_includes_test_file_ratio(self) -> None:
-        """Test file ratio appears in the report."""
+        """Test file ratio appears in the report with correct label."""
         score = make_l1_score()
         report = ReportGenerator().generate(score)
         assert "18%" in report or "18" in report  # 18% test ratio
+        assert "Test file ratio" in report  # must use ratio label, not 'coverage'
+        assert "Test coverage" not in report  # must not confuse with code coverage
 
 
 # ---------------------------------------------------------------------------
@@ -517,6 +519,62 @@ class TestReportEdgeCases:
             report = ReportGenerator().generate(score)
             assert isinstance(report, str)
             assert len(report) > 100  # Substantive output
+
+    def test_l0_roadmap_suppresses_already_met_signals(self) -> None:
+        """L0 roadmap does not suggest adding test files when test ratio is already high."""
+        from datetime import datetime, timezone
+
+        from scanner.models import (
+            AIAdoptionSignals,
+            EngineeringSignals,
+            ObservationWindow,
+            TeamMaturityScore,
+        )
+        from scanner.scoring import TeamScorer
+
+        # vscode-python pattern: high test ratio, low conventional commits
+        ai_signals = AIAdoptionSignals(
+            config_file_present=False,
+            ai_assisted_commit_rate=0.50,
+            ai_assisted_commit_count=22,
+            total_commits=44,
+            contributors_with_ai_patterns=4,
+            total_contributors=8,
+            contributor_ai_rate=0.50,
+        )
+        eng_signals = EngineeringSignals(
+            test_file_count=563,
+            total_code_files=1139,
+            test_file_ratio=0.494,
+            conventional_commit_count=4,
+            total_commits=44,
+            conventional_commit_rate=0.091,
+            ci_cd_present=True,
+            readme_present=True,
+        )
+        scorer = TeamScorer()
+        ai_score = scorer._score_ai_adoption(ai_signals)
+        eng_score = scorer._score_engineering(eng_signals)
+        score = TeamMaturityScore(
+            repository="microsoft/vscode-python",
+            observation_window=ObservationWindow(
+                start_date=datetime(2025, 12, 14, tzinfo=timezone.utc),
+                end_date=datetime(2026, 3, 14, tzinfo=timezone.utc),
+            ),
+            active_contributors=8,
+            ai_adoption_score=ai_score,
+            engineering_score=eng_score,
+            overall_level=0,
+            ai_signals=ai_signals,
+            eng_signals=eng_signals,
+        )
+        report = ReportGenerator().generate(score)
+        # Test file ratio is 49% — well above 15% threshold
+        # Roadmap must NOT suggest adding test files
+        assert "Add test files" not in report
+        assert "target 15% test file ratio" not in report
+        # Should still suggest fixing conventional commits (only 9%)
+        assert "conventional commit" in report.lower()
 
 
 # ---------------------------------------------------------------------------

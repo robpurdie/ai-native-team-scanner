@@ -70,11 +70,19 @@ All percentage-based metrics use **active contributors** as the denominator:
 
 | Signal | What We Look For | Detection Method |
 |--------|------------------|------------------|
-| **Test Coverage** | Presence and growth of test files | File pattern matching (`*test*.py`, `*.spec.js`, etc.) |
+| **Test File Ratio** | Proportion of files that are test files | File pattern matching (`*test*.py`, `*.spec.js`, etc.) |
 | **Conventional Commits** | Structured commit messages following convention | Commit message regex: `^(feat\|fix\|docs\|style\|refactor\|test\|chore)(\(.+\))?: .+` |
 | **CI/CD Configuration** | Automated testing/deployment pipelines | Presence of `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`, etc. |
 | **Documentation** | README, architecture docs, API docs | Markdown files, docstrings, comment density |
 | **Code Quality** | Low complexity, reasonable file sizes | Static analysis or heuristics on file length, nesting depth |
+
+> **Important distinction: Test File Ratio vs. Code Coverage**
+>
+> The scanner measures **test file ratio** — what percentage of files in the repository are test files. This is a *structural* signal: does this team write tests alongside their code as a disciplined habit?
+>
+> This is different from **code coverage** (e.g. 80%+ line coverage measured by tools like pytest-cov or Istanbul), which measures what percentage of code lines are executed by tests. Code coverage requires running the test suite and cannot be observed from the GitHub API alone.
+>
+> A team could have a high test file ratio but shallow tests (low line coverage), or thorough tests concentrated in few files (high line coverage, low file ratio). Both metrics are useful — they measure different things. The test file ratio is a leading indicator of testing *culture*; code coverage is a measure of testing *thoroughness*.
 
 ### Scoring Thresholds
 

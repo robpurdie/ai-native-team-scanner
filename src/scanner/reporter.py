@@ -239,7 +239,7 @@ class ReportGenerator:
             ci_status = "Present" if eng.ci_cd_present else "Not detected"
             readme_status = "Present" if eng.readme_present else "Not detected"
             lines.append(
-                f"**Test coverage:** {eng.test_file_count} test files out of "
+                f"**Test file ratio:** {eng.test_file_count} test files out of "
                 f"{eng.total_code_files} code files ({test_pct}%).  \n"
                 f"**Conventional commits:** {eng.conventional_commit_count} of "
                 f"{eng.total_commits} commits ({conv_pct}%) follow the conventional "
@@ -357,28 +357,62 @@ class ReportGenerator:
         lines = ["## Strategic Roadmap", ""]
 
         if current == 0:
+            lines += ["### Phase 1 \u2014 Reach L1 (Integrating)", ""]
+
+            # AI Adoption guidance — only show items not already met
+            ai = score.ai_signals
+            thresholds = self._analyzer.thresholds
+            ai_items = []
+            if ai is None or (
+                not ai.config_file_present
+                and ai.ai_assisted_commit_rate < thresholds.ai_level1_commit_rate
+            ):
+                ai_items += [
+                    "- Ensure every contributor has access to an AI coding assistant",
+                    "- Establish team-level AI tool configuration"
+                    " (`.cursorrules` or equivalent)",
+                    "- Set a team norm: use AI assistance for at least one task per day",
+                ]
+            elif ai is not None and not ai.config_file_present:
+                ai_items.append(
+                    "- Add a team-level AI tool configuration file"
+                    " (`.cursorrules` or equivalent)"
+                )
+
+            if ai_items:
+                lines += ["**AI Adoption:**"] + ai_items + [""]
+            else:
+                lines += ["**AI Adoption:** \u2705 L1 threshold already met.", ""]
+
+            # Engineering guidance — only show items not already met
+            eng = score.eng_signals
+            eng_items = []
+            if eng is None or eng.test_file_ratio < thresholds.eng_level1_test_ratio:
+                eng_items.append(
+                    "- Add test files alongside new features" " \u2014 target 15% test file ratio"
+                )
+            if (
+                eng is None
+                or eng.conventional_commit_rate < thresholds.eng_level1_conventional_rate
+            ):
+                eng_items.append("- Adopt conventional commit format for all commits")
+            if eng is None or not eng.ci_cd_present:
+                eng_items.append("- Set up a CI/CD pipeline if not already present")
+            if eng is None or not eng.readme_present:
+                eng_items.append("- Ensure the repository has a README")
+
+            if eng_items:
+                lines += ["**Engineering Practices:**"] + eng_items + [""]
+            else:
+                lines += ["**Engineering Practices:** \u2705 L1 threshold already met.", ""]
+
             lines += [
-                "### Phase 1 \u2014 Reach L1 (Integrating)",
-                "",
-                "Focus on establishing the minimum viable practices for both dimensions:",
-                "",
-                "**AI Adoption:**",
-                "- Ensure every contributor has access to an AI coding assistant",
-                "- Establish team-level AI tool configuration (`.cursorrules` or equivalent)",
-                "- Set a team norm: use AI assistance for at least one task per day",
-                "",
-                "**Engineering Practices:**",
-                "- Add test files alongside new features \u2014 target 15% test ratio",
-                "- Adopt conventional commit format for all commits",
-                "- Set up a CI/CD pipeline if not already present",
-                "- Ensure the repository has a README",
-                "",
                 "### Phase 2 \u2014 Reach L2 (AI-Native)",
                 "",
                 "Once L1 is sustained across two consecutive 90-day windows:",
                 "",
                 "- Scale AI adoption to 60%+ of commits across 80%+ of contributors",
-                "- Deepen test coverage to 25%+ and conventional commits to 70%+",
+                "- Deepen test file ratio to 25%+ and conventional commits to 70%+",
             ]
         elif current == 1:
             lines += [

@@ -22,12 +22,20 @@ class GapAnalyzer:
         """
         self.thresholds = thresholds or ScoringThresholds()
 
-    def ai_adoption_gaps(self, score: DimensionScore, signals: AIAdoptionSignals) -> Dict[str, Any]:
+    def ai_adoption_gaps(
+        self,
+        score: DimensionScore,
+        signals: AIAdoptionSignals,
+        team_target_level: Optional[int] = None,
+    ) -> Dict[str, Any]:
         """Calculate gaps for AI Adoption dimension.
 
         Args:
             score: Current DimensionScore for AI Adoption
             signals: Raw AI adoption signals
+            team_target_level: If provided, caps target at this level. Used by
+                team_gaps() to prevent a dimension that is already ahead of the
+                team from chasing its own next level while the team is still behind.
 
         Returns:
             Dict with target_level and concrete gap metrics
@@ -35,10 +43,22 @@ class GapAnalyzer:
         if score.level == 2:
             return {
                 "target_level": None,
-                "message": "Already at L2 (AI-Native) — no gaps to close",
+                "message": "Already at L2 (AI-Native) \u2014 no gaps to close",
             }
 
-        target_level = score.level + 1
+        # If team_target_level is set and this dimension already meets it,
+        # report it as met rather than chasing the dimension's own next level.
+        if team_target_level is not None and score.level >= team_target_level:
+            result = (
+                self._ai_gaps_to_l1(signals)
+                if team_target_level == 1
+                else self._ai_gaps_to_l2(signals)
+            )
+            result["already_meets_team_target"] = True
+            result["target_level"] = team_target_level
+            return result
+
+        target_level = team_target_level if team_target_level is not None else score.level + 1
 
         if target_level == 1:
             return self._ai_gaps_to_l1(signals)
@@ -127,13 +147,17 @@ class GapAnalyzer:
         }
 
     def engineering_gaps(
-        self, score: DimensionScore, signals: EngineeringSignals
+        self,
+        score: DimensionScore,
+        signals: EngineeringSignals,
+        team_target_level: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Calculate gaps for Engineering Practices dimension.
 
         Args:
             score: Current DimensionScore for Engineering Practices
             signals: Raw engineering signals
+            team_target_level: If provided, caps target at this level.
 
         Returns:
             Dict with target_level and concrete gap metrics
@@ -141,10 +165,12 @@ class GapAnalyzer:
         if score.level == 2:
             return {
                 "target_level": None,
-                "message": "Already at L2 (AI-Native) — no gaps to close",
+                "message": "Already at L2 (AI-Native) \u2014 no gaps to close",
             }
 
-        target_level = score.level + 1
+        target_level = team_target_level if team_target_level is not None else score.level + 1
+        # Never target beyond what the dimension can reach next
+        target_level = min(target_level, score.level + 1)
 
         if target_level == 1:
             test_threshold = self.thresholds.eng_level1_test_ratio
@@ -175,7 +201,7 @@ class GapAnalyzer:
                 "target_ratio": test_threshold,
                 "message": (
                     f"Add {test_gap} test files to reach "
-                    f"{int(test_threshold * 100)}% test coverage "
+                    f"{int(test_threshold * 100)}% test file ratio "
                     f"(currently {signals.test_file_count}/{signals.total_code_files})"
                     if test_gap > 0
                     else "Test file ratio threshold already met"
@@ -198,7 +224,7 @@ class GapAnalyzer:
             "ci_cd_gap": {
                 "needed": ci_cd_gap,
                 "message": (
-                    "Add CI/CD configuration " "(GitHub Actions, CircleCI, or equivalent)"
+                    "Add CI/CD configuration (GitHub Actions, CircleCI, or equivalent)"
                     if ci_cd_gap
                     else "CI/CD already present"
                 ),
@@ -222,6 +248,10 @@ class GapAnalyzer:
     ) -> Dict[str, Any]:
         """Calculate full team-level gap analysis across both dimensions.
 
+        Both dimensions target the team's next overall level, not their own
+        individual next level. This prevents a dimension that is already ahead
+        from generating misleading guidance while the team is still behind.
+
         Args:
             ai_score: AI Adoption DimensionScore
             ai_signals: Raw AI adoption signals
@@ -232,6 +262,7 @@ class GapAnalyzer:
             Dict with both dimension gaps, limiting dimension, and overall level
         """
         overall_level = min(ai_score.level, eng_score.level)
+        team_target = overall_level + 1 if overall_level < 2 else None
 
         # Identify limiting dimension (the one holding back overall level)
         if ai_score.level == eng_score.level:
@@ -247,6 +278,6 @@ class GapAnalyzer:
         return {
             "overall_level": overall_level,
             "limiting_dimension": limiting_dimension,
-            "ai_adoption": self.ai_adoption_gaps(ai_score, ai_signals),
-            "engineering": self.engineering_gaps(eng_score, eng_signals),
+            "ai_adoption": self.ai_adoption_gaps(ai_score, ai_signals, team_target),
+            "engineering": self.engineering_gaps(eng_score, eng_signals, team_target),
         }
