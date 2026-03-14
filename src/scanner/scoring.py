@@ -37,8 +37,9 @@ class ScoringThresholds:
     eng_level1_conventional_rate: float = 0.30  # 30% conventional commits
     eng_level2_conventional_rate: float = 0.70  # 70% conventional commits
 
-    # Minimum contributors for valid analysis
-    min_contributors: int = 2
+    # Minimum commits for valid analysis (commit volume, not contributor count)
+    # A human-AI pair with sufficient commits is a legitimate team unit.
+    min_commits: int = 10
 
 
 class TeamScorer:
@@ -67,11 +68,11 @@ class TeamScorer:
         active_contributors = analyzer.get_active_contributors()
         commit_analysis = analyzer.analyze_commits()
 
-        # Check minimum contributors
-        if len(active_contributors) < self.thresholds.min_contributors:
-            # Flag for manual review - create minimal score
+        # Check minimum commit volume — enough signal to score meaningfully
+        total_commits = commit_analysis["total_commits"]
+        if total_commits < self.thresholds.min_commits:
             return self._create_insufficient_data_score(
-                repo.full_name, window, len(active_contributors)
+                repo.full_name, window, len(active_contributors), total_commits
             )
 
         # Detect AI adoption signals
@@ -368,24 +369,31 @@ class TeamScorer:
         )
 
     def _create_insufficient_data_score(
-        self, repo_name: str, window: ObservationWindow, contributor_count: int
+        self, repo_name: str, window: ObservationWindow, contributor_count: int, commit_count: int
     ) -> TeamMaturityScore:
-        """Create a score for repositories with insufficient data.
+        """Create a score for repositories with insufficient commit volume.
 
         Args:
             repo_name: Repository full name
             window: Observation window
             contributor_count: Number of active contributors
+            commit_count: Total commits in window
 
         Returns:
             TeamMaturityScore marked for manual review
         """
+        detail = (
+            f"Insufficient data: only {commit_count} "
+            f"{'commit' if commit_count == 1 else 'commits'} in window "
+            f"(minimum {self.thresholds.min_commits} required)"
+        )
+
         ai_score = DimensionScore(
             dimension="AI Adoption",
             level=0,
             signals={},
             threshold_met={},
-            details=f"Insufficient data: only {contributor_count} contributors",
+            details=detail,
         )
 
         eng_score = DimensionScore(
@@ -393,7 +401,7 @@ class TeamScorer:
             level=0,
             signals={},
             threshold_met={},
-            details=f"Insufficient data: only {contributor_count} contributors",
+            details=detail,
         )
 
         return TeamMaturityScore(

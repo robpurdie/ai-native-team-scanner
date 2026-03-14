@@ -199,9 +199,13 @@ class ReportGenerator:
                 )
             else:
                 lines.append(
-                    "\nNo AI tool configuration file detected. Adding one (e.g. "
-                    "`.cursorrules` or `.github/copilot-instructions.md`) signals "
-                    "intentional, team-wide AI adoption."
+                    "\nNo AI tool configuration file detected. "
+                    "A committed config file (e.g. `.cursorrules` or "
+                    "`.github/copilot-instructions.md`) acts as a "
+                    "**working agreement with your AI tools** \u2014 defining the coding "
+                    "standards, patterns, and context that every contributor's AI "
+                    "assistant will follow. Without it, AI adoption remains a collection "
+                    "of individual habits rather than a shared team capability."
                 )
         else:
             lines.append("Detailed signal data unavailable for this scan.")

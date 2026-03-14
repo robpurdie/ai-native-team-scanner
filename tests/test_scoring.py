@@ -10,49 +10,47 @@ from scanner.scoring import ScoringThresholds, TeamScorer
 class TestTeamScorer:
     """Tests for TeamScorer class."""
 
-    def test_score_repository_insufficient_contributors(self):
-        """Test scoring with insufficient contributors."""
+    def test_score_repository_insufficient_commits(self):
+        """Test scoring with insufficient commit volume (below min_commits threshold)."""
         repo = Mock()
         repo.full_name = "owner/repo"
 
-        # Mock analyzer to return 1 contributor (below threshold of 2)
+        # Mock analyzer to return only 5 commits (below threshold of 10)
         window = ObservationWindow(start_date=datetime(2025, 12, 1), end_date=datetime(2026, 3, 1))
 
         scorer = TeamScorer()
 
-        # Mock the analyzer
         from unittest.mock import patch
 
         mock_analyzer = Mock()
-        mock_analyzer.get_active_contributors.return_value = set(["alice"])
+        mock_analyzer.get_active_contributors.return_value = set(["alice", "bob"])
         mock_analyzer.analyze_commits.return_value = {
-            "total_commits": 10,
+            "total_commits": 5,
             "ai_assisted_commits": 2,
-            "conventional_commits": 5,
+            "conventional_commits": 3,
             "contributors_with_ai": set(["alice"]),
         }
 
-        # Patch the CommitAnalyzer class
         with patch("scanner.scoring.CommitAnalyzer", return_value=mock_analyzer):
             score = scorer.score_repository(repo, window)
 
-        # Should flag as insufficient data
+        # Should flag as insufficient data due to low commit count
         assert score.overall_level == 0
-        assert score.active_contributors == 1
         assert "Insufficient data" in score.ai_adoption_score.details
+        assert "commits" in score.ai_adoption_score.details
 
     def test_custom_thresholds(self):
         """Test using custom thresholds."""
         custom_thresholds = ScoringThresholds(
             ai_level1_commit_rate=0.10,
             eng_level1_test_ratio=0.10,
-            min_contributors=1,
+            min_commits=5,
         )
 
         scorer = TeamScorer(thresholds=custom_thresholds)
 
         assert scorer.thresholds.ai_level1_commit_rate == 0.10
-        assert scorer.thresholds.min_contributors == 1
+        assert scorer.thresholds.min_commits == 5
 
     def test_score_ai_adoption_level_0(self):
         """Test AI adoption scoring at Level 0."""
@@ -209,16 +207,16 @@ class TestScoringThresholds:
         assert thresholds.eng_level2_test_ratio == 0.25
         assert thresholds.eng_level1_conventional_rate == 0.30
         assert thresholds.eng_level2_conventional_rate == 0.70
-        assert thresholds.min_contributors == 2
+        assert thresholds.min_commits == 10
 
     def test_custom_thresholds(self):
         """Test custom threshold values."""
         thresholds = ScoringThresholds(
             ai_level1_commit_rate=0.10,
             eng_level1_test_ratio=0.10,
-            min_contributors=5,
+            min_commits=5,
         )
 
         assert thresholds.ai_level1_commit_rate == 0.10
         assert thresholds.eng_level1_test_ratio == 0.10
-        assert thresholds.min_contributors == 5
+        assert thresholds.min_commits == 5

@@ -455,7 +455,7 @@ class TestReportContent:
         # AI is already L2 — roadmap should NOT suggest increasing AI adoption
         assert "Already at L2" in report
         # Engineering still needs work
-        assert "test coverage" in report.lower() or "conventional commit" in report.lower()
+        assert "test file ratio" in report.lower() or "conventional commit" in report.lower()
 
     def test_report_includes_ai_commit_rate(self) -> None:
         """AI commit rate percentage appears in the report."""

@@ -23,7 +23,10 @@ Distinct commit authors in the 90-day observation window. This is used as the no
 - Naturally handles part-time contributors or varying capacity
 
 **Edge case:**
-Repos with <2 active contributors are flagged for manual review (may be maintenance mode, individual projects, or data quality issues).
+Repos with fewer than 10 commits in the observation window are flagged as insufficient data. Commit volume — not contributor count — determines whether there is enough signal to score meaningfully.
+
+**Design rationale:**
+A human-AI pair is a legitimate team unit. The original `min_contributors: 2` threshold reflected a pre-AI assumption that teams are composed exclusively of humans. A single contributor working deeply with AI tools generates real, scoreable team-level signals. What matters is whether there is enough activity to detect patterns, not how many humans are involved.
 
 ### Observation Window
 90-day rolling window for all metrics. This balances:
