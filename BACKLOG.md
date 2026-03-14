@@ -101,6 +101,26 @@
 
 ## Phase 2: Enable Organizational Comparison
 
+### P0: Git Trees API — Batch Performance Optimization
+**Feature:** Replace recursive directory traversal with GitHub's Git Trees API (`git/trees?recursive=1`)
+
+**Why:** Current file tree walking makes one API call per directory, which is expensive at scale. A single large repo can consume 50-200 API requests just for file counting. At 5,000 requests/hour (GitHub API rate limit), scanning 1,000 repos sequentially could take 10-40 hours — completely impractical for org-wide scans.
+
+**Technical Detail:** The Git Trees API returns the entire file tree in a single request regardless of repo size. This change alone reduces per-repo API calls by ~80-90% and is a prerequisite for practical batch scanning at Cisco scale.
+
+**Acceptance Criteria:**
+- `FileTypeDetector` or `TeamScorer._walk_repository` replaced with single `repo.get_git_tree(sha, recursive=True)` call
+- All existing file detection tests continue to pass
+- Measurable reduction in API calls per scan (validate against `vercel/ai`)
+- Rate limit headroom sufficient for batch scanning 100+ repos in a single run
+
+**Effort:** 2-4 hours
+
+**Note:** Must be implemented before or alongside Batch Scanning Mode — sequential scanning without this optimization will hit rate limits immediately at org scale.
+
+---
+
+
 ### P0: Batch Scanning Mode
 **Feature:** Scan multiple repositories in a single CLI invocation
 

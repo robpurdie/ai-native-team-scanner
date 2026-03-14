@@ -14,7 +14,7 @@ from scanner.models import TeamMaturityScore
 # Level metadata
 # ---------------------------------------------------------------------------
 
-_LEVEL_NAMES = {0: "L0 — Not Yet", 1: "L1 — Integrating", 2: "L2 — AI-Native"}
+_LEVEL_NAMES = {0: "L0 \u2014 Not Yet", 1: "L1 \u2014 Integrating", 2: "L2 \u2014 AI-Native"}
 
 _LEVEL_DESCRIPTIONS = {
     0: (
@@ -31,7 +31,7 @@ _LEVEL_DESCRIPTIONS = {
     ),
 }
 
-_LEVEL_EMOJI = {0: "🔴", 1: "🟡", 2: "🟢"}
+_LEVEL_EMOJI = {0: "\U0001f534", 1: "\U0001f7e1", 2: "\U0001f7e2"}
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +96,6 @@ class ReportGenerator:
 
     def _executive_summary(self, score: TeamMaturityScore) -> str:
         level_name = _LEVEL_NAMES[score.overall_level]
-        level_desc = _LEVEL_DESCRIPTIONS[score.overall_level]
         ai_level = score.ai_adoption_score.level
         eng_level = score.engineering_score.level
         ai_composite = score.ai_adoption_score.composite_score
@@ -104,25 +103,42 @@ class ReportGenerator:
         ai_sublabel = _LEVEL_NAMES[ai_level].split("\u2014")[1].strip()
         eng_sublabel = _LEVEL_NAMES[eng_level].split("\u2014")[1].strip()
 
-        # Identify limiting dimension
+        # Tailor description and limiting dimension callout based on actual dimension state
         if ai_level < eng_level:
             limiting = (
                 f"**AI Adoption is the limiting dimension** (L{ai_level} vs "
-                f"Engineering L{eng_level}). Focus here first."
+                f"Engineering L{eng_level}). "
+                f"Strong engineering practices are in place, but without deeper AI "
+                f"integration this team cannot progress toward AI-Native — "
+                f"and is likely leaving significant productivity gains unrealised."
+            )
+            level_desc = (
+                "Engineering practices are strong, but AI adoption needs to catch up "
+                "before the team can advance to the next level."
             )
         elif eng_level < ai_level:
             limiting = (
                 f"**Engineering Practices is the limiting dimension** (L{eng_level} vs "
                 f"AI Adoption L{ai_level}). "
-                "Engineering discipline is holding back the overall level."
+                f"The team's AI adoption is already at L{ai_level}, but engineering "
+                f"discipline is capping the overall rating at L{eng_level}. "
+                f"A team cannot become AI-Native without both dimensions reaching L2 — "
+                f"and without stronger engineering practices, the speed gains from AI "
+                f"adoption risk generating technical debt faster than the team can manage it."
+            )
+            level_desc = (
+                "AI adoption is ahead of engineering practices. "
+                "Strengthening the engineering foundation will unlock the next maturity level."
             )
         elif score.overall_level == 2:
             limiting = "Both dimensions are at L2. This team has reached AI-Native status."
+            level_desc = _LEVEL_DESCRIPTIONS[2]
         else:
             limiting = (
                 f"Both dimensions are at the same level (L{score.overall_level}). "
-                "Improvements to either dimension will advance the team."
+                "Improvements to either dimension will advance the team toward AI-Native."
             )
+            level_desc = _LEVEL_DESCRIPTIONS[score.overall_level]
 
         lines = [
             "## Executive Summary",
@@ -134,7 +150,8 @@ class ReportGenerator:
             "| Dimension | Level | Score (0\u2013100) |",
             "|-----------|-------|---------------|",
             f"| AI Adoption | L{ai_level} \u2014 {ai_sublabel} | {ai_composite:.1f} |",
-            f"| Engineering Practices | L{eng_level} \u2014 {eng_sublabel} | {eng_composite:.1f} |",
+            f"| Engineering Practices | L{eng_level} \u2014 {eng_sublabel}"
+            f" | {eng_composite:.1f} |",
             "",
             limiting,
         ]
@@ -170,7 +187,8 @@ class ReportGenerator:
             contributor_pct = int(ai.contributor_ai_rate * 100)
             lines.append(
                 f"Of {ai.total_commits} commits in the observation window, "
-                f"**{ai.ai_assisted_commit_count} ({commit_pct}%) show AI-assisted patterns**. "
+                f"**{ai.ai_assisted_commit_count} ({commit_pct}%) show AI-assisted "
+                f"patterns**. "
                 f"{ai.contributors_with_ai_patterns} of {ai.total_contributors} active "
                 f"contributors ({contributor_pct}%) are using AI tools."
             )
@@ -256,7 +274,7 @@ class ReportGenerator:
             lines += [
                 "### AI Adoption",
                 "",
-                "\u26a0\ufe0f Raw signal data unavailable —"
+                "\u26a0\ufe0f Raw signal data unavailable \u2014"
                 " gap calculation requires a full scan.",
                 "",
             ]
@@ -268,7 +286,7 @@ class ReportGenerator:
             lines += [
                 "### Engineering Practices",
                 "",
-                "\u26a0\ufe0f Raw signal data unavailable —"
+                "\u26a0\ufe0f Raw signal data unavailable \u2014"
                 " gap calculation requires a full scan.",
                 "",
             ]
@@ -334,6 +352,8 @@ class ReportGenerator:
 
     def _strategic_roadmap_section(self, score: TeamMaturityScore) -> str:
         current = score.overall_level
+        ai_level = score.ai_adoption_score.level
+        eng_level = score.engineering_score.level
         lines = ["## Strategic Roadmap", ""]
 
         if current == 0:
@@ -368,15 +388,32 @@ class ReportGenerator:
                 "",
                 "### Phase 2 \u2014 Reach L2 (AI-Native)",
                 "",
-                "**AI Adoption:**",
-                "- Scale AI commit patterns across all contributors (target 80%+ coverage)",
-                "- Increase AI-assisted commit rate to 60%+",
-                "",
-                "**Engineering Practices:**",
-                "- Deepen test coverage to 25%+ test file ratio",
-                "- Increase conventional commit adoption to 70%+",
-                "- Ensure CI/CD and documentation are comprehensive",
             ]
+            # Only show AI Adoption guidance if AI is not already at L2
+            if ai_level < 2:
+                lines += [
+                    "**AI Adoption:**",
+                    "- Scale AI commit patterns across all contributors (target 80%+ coverage)",
+                    "- Increase AI-assisted commit rate to 60%+",
+                    "",
+                ]
+            else:
+                lines += [
+                    "**AI Adoption:** \u2705 Already at L2 \u2014 no action needed.",
+                    "",
+                ]
+            # Only show Engineering guidance if Engineering is not already at L2
+            if eng_level < 2:
+                lines += [
+                    "**Engineering Practices:**",
+                    "- Deepen test coverage to 25%+ test file ratio",
+                    "- Increase conventional commit adoption to 70%+",
+                    "- Ensure CI/CD and documentation are comprehensive",
+                ]
+            else:
+                lines += [
+                    "**Engineering Practices:** \u2705 Already at L2 \u2014 no action needed.",
+                ]
         else:
             lines += [
                 "### \U0001f7e2 L2 Achieved \u2014 Sustain and Scale",

@@ -1,21 +1,20 @@
 # AI-Native Team Scanner - Project Context
-**Last Updated**: March 13, 2026
+**Last Updated**: March 14, 2026
 
 ## Repository Information
 - **GitHub Repo**: https://github.com/robpurdie/ai-native-team-scanner
-- **Current Version**: v2.1.0 (released 2026-03-12)
+- **Current Version**: v2.1.0 on `main`; Phase 1 features on `dev` (pending release)
 - **Branch Strategy**: `main` = stable releases, `dev` = active development
 - **Local Path**: ~/Apps/Aints
 
 ## Strategic Planning Documents
 
-**NEW (March 13, 2026):** Product roadmap and feature backlog now documented:
-- **ROADMAP.md** - Strategic vision with 4 phases mapped to quarters (Q2 2026 → 2027+)
-- **BACKLOG.md** - Prioritized feature backlog with P0/P1/P2/P3 levels and effort estimates
+**ROADMAP.md** - Strategic vision with 4 phases mapped to quarters (Q2 2026 → 2027+)
+**BACKLOG.md** - Prioritized feature backlog with P0/P1/P2/P3 levels and effort estimates
 
 These documents provide the big picture view and guide tactical implementation decisions.
 
-## Current Status (March 13, 2026)
+## Current Status (March 14, 2026)
 
 ### ✅ Production-Ready Scanner
 The scanner is **fully functional** and has been validated against real repositories:
@@ -33,9 +32,9 @@ The scanner is **fully functional** and has been validated against real reposito
 - ✅ Verbose CLI mode with detailed progress reporting
 
 **Test Coverage:**
-- ✅ 103 tests passing
-- ✅ 85% code coverage
-- ✅ All CI checks green on main branch
+- ✅ 165 tests passing
+- ✅ 85%+ code coverage
+- ✅ All CI checks green
 - ✅ Pre-commit hooks prevent regressions
 
 **Validation:**
@@ -46,40 +45,31 @@ The scanner is **fully functional** and has been validated against real reposito
 - ✅ Scanned multiple production repos: rails/rails, langgenius/dify, anthropics/anthropic-sdk-python, langchain-ai/langchain
 - ✅ Maturity model proven to work as designed
 
-### 🚀 Recent Achievements (v2.1.0)
+### ✅ Phase 1 Complete — Results Are Now Actionable
 
-**Enhanced CI/CD Detection:**
-- Added detection for 8 modern deployment platforms (Vercel, Netlify, Railway, Render, Google Cloud Build, AWS CodeBuild, Buildkite)
-- Added GitHub API behavioral detection for repos without config files
-- Detects GitHub Actions workflows via API
-- Detects commit status checks on recent commits
-- 12 new tests covering all detection scenarios
+**Delivered (March 14, 2026, committed to `dev`):**
+- **Composite Scoring** — 0-100 scores on both dimensions for ranking within levels
+  - AI: `(commit_rate×60) + (contributor_coverage×30) + (config_file×10)`
+  - Eng: `(test_ratio×30) + (conventional_rate×40) + (ci_cd×20) + (readme×10)`
+- **Gap Analysis Engine** — concrete next steps with raw counts, not just rates
+  - Handles L0→L1 and L1→L2 on both dimensions
+  - Identifies limiting dimension holding back overall level
+- **Report Generator** — full markdown reports, no LLM dependency
+  - Seven sections: header, executive summary, AI adoption, engineering,
+    gap analysis, strategic roadmap, appendix
+  - Single `TeamMaturityScore` input; `save()` writes to file
+- **CLI `--report` flag** — generates markdown alongside JSON output
+- **Signals stored on `TeamMaturityScore`** — self-contained for all downstream consumers
 
-**Critical Bug Fixes:**
-- **Fixed AI Adoption L1 scoring**: No longer requires config file - now correctly evaluates as "config file OR 20%+ AI commits"
-- **Fixed AI Adoption L2 scoring**: No longer requires config file - now correctly evaluates as "60%+ AI commits AND 80%+ contributors"
-- Impact: Teams like Vercel AI now correctly classified as L1 instead of L0
+### ⏭️ Current Focus: Phase 2 — Enable Organizational Comparison
 
-### ⏭️ Current Focus: Phase 1 - Make Results Actionable
+**Next up (see ROADMAP.md and BACKLOG.md):**
+- **P0: Batch Scanning Mode** — scan multiple repos in one CLI invocation
+- **P0: Comparative Analysis Engine** — percentiles, rankings, top performers
+- **P0: Comparative Report Generator** — org-wide dashboard report
 
-**Strategic Context (see ROADMAP.md for full details):**
-
-Given how new AI-native behaviors are (<18 months since widespread Copilot/ChatGPT adoption), we expect:
-- **Most teams at L0** (especially in enterprise IT)
-- **Few teams at L1** (early adopters, 5-10%)
-- **Rare L2 teams** (perhaps 1-2 teams if any)
-
-**The Challenge:** Raw classification alone won't drive improvement. We need to:
-1. Enable ranking teams even when all are L0
-2. Provide concrete, actionable next steps
-3. Generate insights without LLM dependencies (for enterprise deployment)
-
-**Phase 1 Committed Features (see BACKLOG.md for acceptance criteria):**
-- **P0: Composite Scoring System** (2-4 hours) - Add 0-100 scores for ranking within levels
-- **P0: Gap Analysis Engine** (4-6 hours) - Calculate concrete next steps to reach next level
-- **P0: Automated Report Generator** (1-2 days) - Generate rich markdown reports programmatically
-
-**Success Criteria:** Scan a repo, get a rich actionable report comparable to high-quality manual analysis
+**Recommended next action:** Real-world validation — scan `vercel/ai` with `--report` flag
+and review generated report quality before building Phase 2.
 
 ## Project Structure
 
@@ -87,21 +77,25 @@ Given how new AI-native behaviors are (<18 months since widespread Copilot/ChatG
 ai-native-team-scanner/
 ├── src/scanner/
 │   ├── __init__.py
-│   ├── cli.py              # ✅ Command-line interface with verbose mode
+│   ├── cli.py              # ✅ CLI with --output, --verbose, --report flags
 │   ├── github_client.py    # ✅ GitHub API wrapper with rate limiting
-│   ├── models.py           # ✅ Data models (TeamMaturityScore, etc.)
+│   ├── models.py           # ✅ Data models (TeamMaturityScore, DimensionScore, etc.)
 │   ├── analyzer.py         # ✅ Commit analysis (90-day window)
 │   ├── detectors.py        # ✅ Signal detection (AI, tests, CI/CD, docs)
-│   ├── scoring.py          # ✅ Two-dimensional maturity scoring
-│   └── github_client.py    # ✅ GitHub API client
+│   ├── scoring.py          # ✅ Two-dimensional maturity scoring + composite scores
+│   ├── gap_analysis.py     # ✅ Gap analysis engine (Phase 1)
+│   └── reporter.py         # ✅ Markdown report generator (Phase 1)
 ├── tests/
-│   ├── test_analyzer.py        # ✅ Commit analysis tests
-│   ├── test_cli.py             # ✅ CLI tests
-│   ├── test_detectors.py       # ✅ Signal detection tests (legacy)
-│   ├── test_detectors_new.py   # ✅ Enhanced detector tests
-│   ├── test_cicd_enhanced.py   # ✅ Modern CI/CD detection tests
-│   ├── test_scoring_fix.py     # ✅ AI adoption scoring fix tests
-│   └── test_github_client.py   # ✅ GitHub client tests
+│   ├── test_analyzer.py          # ✅ Commit analysis tests
+│   ├── test_cli.py               # ✅ CLI tests
+│   ├── test_detectors.py         # ✅ Signal detection tests (legacy)
+│   ├── test_detectors_new.py     # ✅ Enhanced detector tests
+│   ├── test_cicd_enhanced.py     # ✅ Modern CI/CD detection tests
+│   ├── test_scoring_fix.py       # ✅ AI adoption scoring fix tests
+│   ├── test_composite_scoring.py # ✅ Composite scoring tests (Phase 1)
+│   ├── test_gap_analysis.py      # ✅ Gap analysis engine tests (Phase 1)
+│   ├── test_reporter.py          # ✅ Report generator tests (Phase 1)
+│   └── test_github_client.py     # ✅ GitHub client tests
 ├── results/                # Scan outputs (gitignored)
 ├── VISION.md              # ✅ Project vision and purpose
 ├── MATURITY_MODEL.md      # ✅ 3-level framework definition
@@ -134,6 +128,11 @@ ai-native-team-scanner/
 ### Engineering Practice Thresholds
 - **L1**: 15%+ tests, 30%+ conventional commits, CI/CD present, README present
 - **L2**: 25%+ tests, 70%+ conventional commits, CI/CD present, README present
+
+### Composite Score Formulas
+- **AI Adoption**: `(ai_commit_rate × 60) + (contributor_coverage × 30) + (config_file × 10)`
+- **Engineering**: `(test_ratio × 30) + (conventional_rate × 40) + (ci_cd × 20) + (readme × 10)`
+- Both produce 0–100; capped defensively; stored on `DimensionScore.composite_score`
 
 ### CI/CD Detection
 **Traditional Platforms:** GitHub Actions, GitLab CI, CircleCI, Jenkins, Travis CI, Azure Pipelines, Drone, Bitbucket Pipelines
@@ -180,32 +179,11 @@ python -m scanner.cli owner/repo --output results/scan.json
 # Verbose mode (shows progress)
 python -m scanner.cli owner/repo --output results/scan.json --verbose
 
-# Example
-python -m scanner.cli vercel/ai --output results/vercel_ai.json --verbose
-```
+# Generate markdown report (Phase 1)
+python -m scanner.cli owner/repo --output results/scan.json --report results/report.md
 
-### Output Format
-```json
-{
-  "repository": "vercel/ai",
-  "scanned_at": "2026-03-12T18:23:24.180117",
-  "observation_window": {"start": "...", "end": "...", "days": 90},
-  "active_contributors": 119,
-  "overall_level": 1,
-  "level_name": "Integrating",
-  "ai_adoption": {
-    "level": 2,
-    "details": "AI-Native: Strong AI adoption across team",
-    "signals": {...},
-    "thresholds_met": {...}
-  },
-  "engineering_practices": {
-    "level": 1,
-    "details": "Integrating: Building engineering foundation",
-    "signals": {...},
-    "thresholds_met": {...}
-  }
-}
+# Example
+python -m scanner.cli vercel/ai --output results/vercel_ai.json --report results/vercel_ai.md --verbose
 ```
 
 ## Important Notes
@@ -219,4 +197,4 @@ python -m scanner.cli vercel/ai --output results/vercel_ai.json --verbose
 
 ---
 
-**For Claude**: Read this file at session start to establish context. The scanner is production-ready at v2.1.0; current focus is Phase 1 (making results actionable). See ROADMAP.md and BACKLOG.md for strategic direction and prioritized features.
+**For Claude**: Read this file at session start to establish context. Phase 1 (composite scoring, gap analysis, report generator) is complete on `dev`. Current focus is Phase 2 (batch scanning and organizational comparison). See ROADMAP.md and BACKLOG.md for strategic direction and prioritized features.

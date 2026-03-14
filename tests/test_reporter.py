@@ -293,6 +293,169 @@ class TestReportContent:
         assert "Engineering" in report
         # Engineering is the limiting dimension — should be highlighted
         assert "limiting" in report.lower() or "holding back" in report.lower()
+        # Should reference the AI-Native goal
+        assert "AI-Native" in report
+
+    def test_eng_limiting_report_mentions_technical_debt_risk(self) -> None:
+        """When engineering is limiting, report warns about technical debt risk."""
+        score = make_mismatched_score()  # AI L1, Eng L0
+        # Need a score where AI > Eng to trigger the technical debt warning
+        from datetime import datetime, timezone
+
+        from scanner.models import AIAdoptionSignals, EngineeringSignals, ObservationWindow
+        from scanner.scoring import TeamScorer
+
+        ai_signals = AIAdoptionSignals(
+            config_file_present=False,
+            ai_assisted_commit_rate=0.87,
+            ai_assisted_commit_count=87,
+            total_commits=100,
+            contributors_with_ai_patterns=9,
+            total_contributors=10,
+            contributor_ai_rate=0.90,
+        )
+        eng_signals = EngineeringSignals(
+            test_file_count=5,
+            total_code_files=100,
+            test_file_ratio=0.05,
+            conventional_commit_count=10,
+            total_commits=100,
+            conventional_commit_rate=0.10,
+            ci_cd_present=False,
+            readme_present=False,
+        )
+        scorer = TeamScorer()
+        ai_score = scorer._score_ai_adoption(ai_signals)  # L2
+        eng_score = scorer._score_engineering(eng_signals)  # L0
+        from scanner.models import TeamMaturityScore
+
+        score = TeamMaturityScore(
+            repository="example-org/fast-but-fragile",
+            observation_window=ObservationWindow(
+                start_date=datetime(2025, 12, 14, tzinfo=timezone.utc),
+                end_date=datetime(2026, 3, 14, tzinfo=timezone.utc),
+            ),
+            active_contributors=10,
+            ai_adoption_score=ai_score,
+            engineering_score=eng_score,
+            overall_level=0,
+            ai_signals=ai_signals,
+            eng_signals=eng_signals,
+        )
+        report = ReportGenerator().generate(score)
+        assert "technical debt" in report.lower()
+        assert "AI-Native" in report
+
+    def test_ai_limiting_report_mentions_productivity_gains(self) -> None:
+        """When AI adoption is limiting, report mentions unrealised productivity gains."""
+        from datetime import datetime, timezone
+
+        from scanner.models import (
+            AIAdoptionSignals,
+            EngineeringSignals,
+            ObservationWindow,
+            TeamMaturityScore,
+        )
+        from scanner.scoring import TeamScorer
+
+        ai_signals = AIAdoptionSignals(
+            config_file_present=False,
+            ai_assisted_commit_rate=0.05,
+            ai_assisted_commit_count=5,
+            total_commits=100,
+            contributors_with_ai_patterns=1,
+            total_contributors=10,
+            contributor_ai_rate=0.10,
+        )
+        eng_signals = EngineeringSignals(
+            test_file_count=30,
+            total_code_files=100,
+            test_file_ratio=0.30,
+            conventional_commit_count=75,
+            total_commits=100,
+            conventional_commit_rate=0.75,
+            ci_cd_present=True,
+            readme_present=True,
+        )
+        scorer = TeamScorer()
+        ai_score = scorer._score_ai_adoption(ai_signals)  # L0
+        eng_score = scorer._score_engineering(eng_signals)  # L2
+        score = TeamMaturityScore(
+            repository="example-org/solid-but-slow",
+            observation_window=ObservationWindow(
+                start_date=datetime(2025, 12, 14, tzinfo=timezone.utc),
+                end_date=datetime(2026, 3, 14, tzinfo=timezone.utc),
+            ),
+            active_contributors=10,
+            ai_adoption_score=ai_score,
+            engineering_score=eng_score,
+            overall_level=0,
+            ai_signals=ai_signals,
+            eng_signals=eng_signals,
+        )
+        report = ReportGenerator().generate(score)
+        assert "productivity" in report.lower()
+        assert "AI-Native" in report
+
+    def test_mismatched_report_executive_summary_describes_limiting_dimension(self) -> None:
+        """Executive summary for mismatched team describes the actual situation,
+        not the generic level description."""
+        score = make_mismatched_score()  # AI L1, Eng L0 -> overall L0
+        report = ReportGenerator().generate(score)
+        # Should NOT say the generic L0 description about 'not yet established'
+        # Should instead describe the mismatched state
+        assert "AI adoption is ahead" in report or "engineering foundation" in report.lower()
+
+    def test_l1_mismatched_roadmap_suppresses_complete_dimensions(self) -> None:
+        """Strategic roadmap for L1 team with AI at L2 marks AI adoption as complete."""
+        # AI L2, Engineering L1 -> overall L1 (engineering is limiting)
+        from scanner.models import AIAdoptionSignals, EngineeringSignals
+        from scanner.scoring import TeamScorer
+
+        ai_signals = AIAdoptionSignals(
+            config_file_present=False,
+            ai_assisted_commit_rate=0.87,
+            ai_assisted_commit_count=87,
+            total_commits=100,
+            contributors_with_ai_patterns=9,
+            total_contributors=10,
+            contributor_ai_rate=0.90,
+        )
+        eng_signals = EngineeringSignals(
+            test_file_count=18,
+            total_code_files=100,
+            test_file_ratio=0.18,
+            conventional_commit_count=45,
+            total_commits=100,
+            conventional_commit_rate=0.45,
+            ci_cd_present=True,
+            readme_present=True,
+        )
+        scorer = TeamScorer()
+        ai_score = scorer._score_ai_adoption(ai_signals)
+        eng_score = scorer._score_engineering(eng_signals)
+        from datetime import datetime, timezone
+
+        from scanner.models import ObservationWindow, TeamMaturityScore
+
+        mismatched_l1 = TeamMaturityScore(
+            repository="example-org/test-repo",
+            observation_window=ObservationWindow(
+                start_date=datetime(2025, 12, 14, tzinfo=timezone.utc),
+                end_date=datetime(2026, 3, 14, tzinfo=timezone.utc),
+            ),
+            active_contributors=10,
+            ai_adoption_score=ai_score,
+            engineering_score=eng_score,
+            overall_level=1,
+            ai_signals=ai_signals,
+            eng_signals=eng_signals,
+        )
+        report = ReportGenerator().generate(mismatched_l1)
+        # AI is already L2 — roadmap should NOT suggest increasing AI adoption
+        assert "Already at L2" in report
+        # Engineering still needs work
+        assert "test coverage" in report.lower() or "conventional commit" in report.lower()
 
     def test_report_includes_ai_commit_rate(self) -> None:
         """AI commit rate percentage appears in the report."""
