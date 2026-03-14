@@ -5,6 +5,42 @@ All notable changes to the AI-Native Team Scanner will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-03-14
+
+### Added
+- **Phase 1 Complete: Composite Scoring** — 0-100 scores on both dimensions for ranking within levels. AI formula: `(commit_rate×60) + (contributor_coverage×30) + (config_file×10)`. Engineering formula: `(test_ratio×30) + (conventional_rate×40) + (ci_cd×20) + (readme×10)`
+- **Phase 1 Complete: Gap Analysis Engine** — concrete next steps with raw counts ("Need 14 more AI-assisted commits"). Handles L0→L1 and L1→L2 transitions. Identifies limiting dimension. Targets team's next overall level, not each dimension's individual next level
+- **Phase 1 Complete: Report Generator** — full markdown reports, seven sections, no LLM dependency. Executive-ready language with dimension-aware descriptions
+- **CLI `--report` flag** — generates markdown report alongside JSON output
+- **`CLAUDE.md`** — working agreement with AI tools committed to repo and detected by scanner
+- **Conventional commit enforcement** — `conventional-pre-commit` hook at `commit-msg` stage. Run `pre-commit install --hook-type commit-msg` on new clones
+- **`composite_score` in JSON output** — both dimensions now include 0-100 composite score
+- **Signal-aware strategic roadmap** — L0 and L1 roadmaps suppress guidance for thresholds already met
+- **Validated against 4 real repos** — vercel/ai, microsoft/vscode-python, cline/cline, robpurdie/ai-native-team-scanner
+
+### Changed
+- **Breaking: `min_contributors: 2` → `min_commits: 10`** — commit volume is the right proxy for sufficient signal; human-AI pairs are legitimate team units
+- **Breaking: JSON output format** — `composite_score` added to both `ai_adoption` and `engineering_practices` dimensions
+- **AI config file detection** — added `CLAUDE.md` (Claude/Anthropic); reorganised by tool
+- **Insufficient data message** — now reports commit count with grammatically correct singular/plural
+- **Language throughout** — "test file ratio" not "test coverage"; AI config file described as "working agreement"
+- **METHODOLOGY.md** — documents human-AI team model, soft vs enforced constraints, test file ratio distinction
+- **GitHub Actions** — bumped to Node.js 24-compatible action versions; removed Codecov upload (coverage enforced via pytest `--cov-fail-under`)
+
+### Fixed
+- Executive summary description now reflects actual dimension mismatch, not generic level description
+- Limiting dimension statement now explains consequence for becoming AI-Native
+- Engineering limiting: warns about technical debt risk from AI speed without engineering discipline
+- AI limiting: calls out unrealised productivity gains
+- Gap analysis no longer targets L2 for an ahead-of-schedule dimension while team is still at L0
+- L0 roadmap no longer suggests fixing signals already above threshold (e.g. high test ratio)
+- L1 roadmap no longer suggests deepening signals already at L2 threshold
+- Grammatical error: "only 1 contributors" → "only N commits"
+
+### Validation
+- 170+ tests passing, 85%+ coverage maintained
+- All CI checks passing on both `main` and `dev` branches
+
 ## [2.1.0] - 2026-03-12
 
 ### Added
