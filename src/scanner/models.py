@@ -67,6 +67,7 @@ class DimensionScore:
     signals: dict  # Signal name -> SignalDetection
     threshold_met: dict  # Threshold name -> bool
     details: str = ""
+    composite_score: float = 0.0  # 0-100 score for ranking within levels
 
 
 @dataclass
@@ -80,6 +81,8 @@ class TeamMaturityScore:
     engineering_score: DimensionScore
     overall_level: int
     timestamp: datetime = field(default_factory=datetime.now)
+    ai_signals: Optional["AIAdoptionSignals"] = None  # Raw signals for reporting/gap analysis
+    eng_signals: Optional["EngineeringSignals"] = None  # Raw signals for reporting/gap analysis
 
     @property
     def level_name(self) -> str:

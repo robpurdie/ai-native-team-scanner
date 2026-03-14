@@ -94,6 +94,8 @@ class TeamScorer:
             ai_adoption_score=ai_score,
             engineering_score=eng_score,
             overall_level=overall_level,
+            ai_signals=ai_signals,
+            eng_signals=eng_signals,
         )
 
     def _detect_ai_signals(
@@ -261,12 +263,22 @@ class TeamScorer:
             ),
         }
 
+        # Composite score: (commit_rate * 60) + (contributor_coverage * 30) + (config_file * 10)
+        config_points = 10.0 if signals.config_file_present else 0.0
+        composite = (
+            (min(signals.ai_assisted_commit_rate, 1.0) * 60.0)
+            + (min(signals.contributor_ai_rate, 1.0) * 30.0)
+            + config_points
+        )
+        composite_score = min(round(composite, 2), 100.0)
+
         return DimensionScore(
             dimension="AI Adoption",
             level=level,
             signals=signal_dict,
             threshold_met=thresholds_met,
             details=details,
+            composite_score=composite_score,
         )
 
     def _score_engineering(self, signals: EngineeringSignals) -> DimensionScore:
@@ -334,12 +346,25 @@ class TeamScorer:
             ),
         }
 
+        # Composite score formula:
+        # (test_ratio * 30) + (conventional_rate * 40) + (ci_cd * 20) + (readme * 10)
+        ci_points = 20.0 if signals.ci_cd_present else 0.0
+        readme_points = 10.0 if signals.readme_present else 0.0
+        composite = (
+            (min(signals.test_file_ratio, 1.0) * 30.0)
+            + (min(signals.conventional_commit_rate, 1.0) * 40.0)
+            + ci_points
+            + readme_points
+        )
+        composite_score = min(round(composite, 2), 100.0)
+
         return DimensionScore(
             dimension="Engineering Practices",
             level=level,
             signals=signal_dict,
             threshold_met=thresholds_met,
             details=details,
+            composite_score=composite_score,
         )
 
     def _create_insufficient_data_score(

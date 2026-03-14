@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from scanner.analyzer import CommitAnalyzer
 from scanner.github_client import GitHubClient
+from scanner.reporter import ReportGenerator
 from scanner.scoring import TeamScorer
 
 
@@ -36,6 +37,7 @@ def format_score_output(score: Any) -> dict:
         "level_name": score.level_name,
         "ai_adoption": {
             "level": score.ai_adoption_score.level,
+            "composite_score": score.ai_adoption_score.composite_score,
             "details": score.ai_adoption_score.details,
             "signals": {
                 name: {
@@ -49,6 +51,7 @@ def format_score_output(score: Any) -> dict:
         },
         "engineering_practices": {
             "level": score.engineering_score.level,
+            "composite_score": score.engineering_score.composite_score,
             "details": score.engineering_score.details,
             "signals": {
                 name: {
@@ -117,6 +120,9 @@ def main() -> None:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Print detailed output to console"
     )
+    parser.add_argument(
+        "--report", "-r", help="Generate markdown report at this path", default=None
+    )
 
     args = parser.parse_args()
 
@@ -158,6 +164,10 @@ def main() -> None:
             with open(output_path, "w") as f:
                 json.dump(format_score_output(score), f, indent=2)
             print(f"✓ Results saved to: {args.output}")
+
+        if args.report:
+            ReportGenerator().save(score, args.report)
+            print(f"✓ Report saved to: {args.report}")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
