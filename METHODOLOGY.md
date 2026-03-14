@@ -28,6 +28,22 @@ Repos with fewer than 10 commits in the observation window are flagged as insuff
 **Design rationale:**
 A human-AI pair is a legitimate team unit. The original `min_contributors: 2` threshold reflected a pre-AI assumption that teams are composed exclusively of humans. A single contributor working deeply with AI tools generates real, scoreable team-level signals. What matters is whether there is enough activity to detect patterns, not how many humans are involved.
 
+### The Emerging Team Model: Humans + AI Agents
+
+The scanner is built on a forward-looking model of what software development teams look like.
+
+Classic Agile theory constrained team size (typically 5–9 people) for a principled reason: communication complexity grows as N(N−1)/2. A 5-person team has 10 communication channels — manageable. A 10-person team has 45 — coordination starts to dominate the work. Small teams exist not because bigger teams can’t do more work, but because the overhead of coordinating a large team erodes the benefits of adding people.
+
+The emerging model extends this logic: **small teams of 2–3 humans working alongside multiple AI agents as genuine team members.** An AI agent that holds context, executes autonomously, and produces reviewable outputs is a participant in the team’s communication network, not a tool. A team of 2 humans and 3 AI agents has 10 communication channels — the same as a classic 5-person Agile team.
+
+This has a practical upper bound: the same network complexity constraint that drove small-team thinking in Agile applies to human-AI teams. The right question is not “how many humans?” but “how many participants (human or AI) can this team coordinate effectively?”
+
+For measurement purposes, this means:
+- A repo with 1 human contributor may represent a fully functional human-AI team
+- Commit patterns reflect the whole team’s work, including AI-generated and AI-assisted contributions
+- Future versions of the scanner may distinguish between AI as a passive tool vs. AI as an autonomous agent — the latter being the stronger signal of this team model
+- The goal is not to replace human teams with AI, but to identify teams that have found the right ratio of human judgment and AI throughput for their work
+
 ### Observation Window
 90-day rolling window for all metrics. This balances:
 - Enough time to see patterns (not just one-off behaviors)
