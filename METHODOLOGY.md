@@ -95,6 +95,16 @@ All percentage-based metrics use **active contributors** as the denominator:
 | **Documentation** | README, architecture docs, API docs | Markdown files, docstrings, comment density |
 | **Code Quality** | Low complexity, reasonable file sizes | Static analysis or heuristics on file length, nesting depth |
 
+> **On AI Config Files as Working Agreements**
+>
+> The presence of an AI tool configuration file (`.cursorrules`, `CLAUDE.md`, `.github/copilot-instructions.md`) is treated as a signal of intentional, team-level AI adoption. However, it is important to understand what this signal does and does not mean.
+>
+> These files are **soft constraints** — they express intent and shape AI assistant behaviour when followed, but they have no enforcement mechanism. An AI assistant can ignore them, forget them between sessions, or be overridden by a user at any time. In this sense, they are analogous to Agile team social contracts: teams write them with good intentions, but without reinforcement they are rarely revisited, and violations go unnoticed.
+>
+> What actually enforces standards is the engineering practices dimension: pre-commit hooks that block non-compliant code, CI gates that fail on coverage drops, branch protection rules that require passing checks. These are hard constraints. A config file without strong engineering practices behind it is theatre — stated intent without the discipline to back it up.
+>
+> The strongest signal is the combination of both: a team that has formalised how it works with AI tools (config file present) *and* demonstrates the engineering discipline to enforce its standards (high engineering practices score). Either alone is weaker than both together.
+>
 > **Important distinction: Test File Ratio vs. Code Coverage**
 >
 > The scanner measures **test file ratio** — what percentage of files in the repository are test files. This is a *structural* signal: does this team write tests alongside their code as a disciplined habit?
