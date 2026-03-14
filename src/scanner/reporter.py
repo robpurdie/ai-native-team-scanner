@@ -427,31 +427,61 @@ class ReportGenerator:
                 "### Phase 2 \u2014 Reach L2 (AI-Native)",
                 "",
             ]
-            # Only show AI Adoption guidance if AI is not already at L2
-            if ai_level < 2:
-                lines += [
-                    "**AI Adoption:**",
-                    "- Scale AI commit patterns across all contributors (target 80%+ coverage)",
-                    "- Increase AI-assisted commit rate to 60%+",
-                    "",
-                ]
-            else:
+            # AI Adoption guidance — check individual signals against L2 thresholds
+            ai = score.ai_signals
+            thresholds = self._analyzer.thresholds
+            if ai_level >= 2:
                 lines += [
                     "**AI Adoption:** \u2705 Already at L2 \u2014 no action needed.",
                     "",
                 ]
-            # Only show Engineering guidance if Engineering is not already at L2
-            if eng_level < 2:
-                lines += [
-                    "**Engineering Practices:**",
-                    "- Deepen test coverage to 25%+ test file ratio",
-                    "- Increase conventional commit adoption to 70%+",
-                    "- Ensure CI/CD and documentation are comprehensive",
-                ]
             else:
+                ai_items = []
+                if ai is None or ai.ai_assisted_commit_rate < thresholds.ai_level2_commit_rate:
+                    ai_items.append(
+                        f"- Increase AI-assisted commit rate to "
+                        f"{int(thresholds.ai_level2_commit_rate * 100)}%+"
+                    )
+                if ai is None or ai.contributor_ai_rate < thresholds.ai_level2_contributor_rate:
+                    ai_items.append(
+                        f"- Scale AI adoption across all contributors "
+                        f"(target {int(thresholds.ai_level2_contributor_rate * 100)}%+ coverage)"
+                    )
+                if ai is None or not ai.config_file_present:
+                    ai_items.append(
+                        "- Add a team-level AI config file as a working agreement"
+                        " (`.cursorrules` or equivalent)"
+                    )
+                if ai_items:
+                    lines += ["**AI Adoption:**"] + ai_items + [""]
+                else:
+                    lines += ["**AI Adoption:** \u2705 All L2 thresholds already met.", ""]
+
+            # Engineering guidance — check individual signals against L2 thresholds
+            eng = score.eng_signals
+            if eng_level >= 2:
                 lines += [
                     "**Engineering Practices:** \u2705 Already at L2 \u2014 no action needed.",
                 ]
+            else:
+                eng_items = []
+                if eng is None or eng.test_file_ratio < thresholds.eng_level2_test_ratio:
+                    eng_items.append(
+                        f"- Deepen test file ratio to "
+                        f"{int(thresholds.eng_level2_test_ratio * 100)}%+"
+                    )
+                if (
+                    eng is None
+                    or eng.conventional_commit_rate < thresholds.eng_level2_conventional_rate
+                ):
+                    eng_items.append(
+                        f"- Increase conventional commit adoption to "
+                        f"{int(thresholds.eng_level2_conventional_rate * 100)}%+"
+                    )
+                if eng_items:
+                    lines += ["**Engineering Practices:**"] + eng_items
+                else:
+                    lines += ["**Engineering Practices:** \u2705 All L2 thresholds already met."]
         else:
             lines += [
                 "### \U0001f7e2 L2 Achieved \u2014 Sustain and Scale",

@@ -520,6 +520,62 @@ class TestReportEdgeCases:
             assert isinstance(report, str)
             assert len(report) > 100  # Substantive output
 
+    def test_l1_roadmap_suppresses_already_met_engineering_signals(self) -> None:
+        """L1 roadmap does not suggest deepening test ratio when already at L2 threshold."""
+        from datetime import datetime, timezone
+
+        from scanner.models import (
+            AIAdoptionSignals,
+            EngineeringSignals,
+            ObservationWindow,
+            TeamMaturityScore,
+        )
+        from scanner.scoring import TeamScorer
+
+        # Our repo pattern: L1 overall, test ratio already at L2 (55%), conv commits at L1 (39%)
+        ai_signals = AIAdoptionSignals(
+            config_file_present=False,
+            ai_assisted_commit_rate=0.465,
+            ai_assisted_commit_count=20,
+            total_commits=43,
+            contributors_with_ai_patterns=1,
+            total_contributors=1,
+            contributor_ai_rate=1.0,
+        )
+        eng_signals = EngineeringSignals(
+            test_file_count=10,
+            total_code_files=18,
+            test_file_ratio=0.556,  # well above L2 threshold (25%)
+            conventional_commit_count=17,
+            total_commits=43,
+            conventional_commit_rate=0.395,  # L1 but not L2 (70%)
+            ci_cd_present=True,
+            readme_present=True,
+        )
+        scorer = TeamScorer()
+        ai_score = scorer._score_ai_adoption(ai_signals)  # L1
+        eng_score = scorer._score_engineering(eng_signals)  # L1
+        score = TeamMaturityScore(
+            repository="robpurdie/ai-native-team-scanner",
+            observation_window=ObservationWindow(
+                start_date=datetime(2025, 12, 14, tzinfo=timezone.utc),
+                end_date=datetime(2026, 3, 14, tzinfo=timezone.utc),
+            ),
+            active_contributors=1,
+            ai_adoption_score=ai_score,
+            engineering_score=eng_score,
+            overall_level=1,
+            ai_signals=ai_signals,
+            eng_signals=eng_signals,
+        )
+        report = ReportGenerator().generate(score)
+        # Test ratio is 55.6% — well above L2 threshold (25%)
+        # Roadmap must NOT suggest deepening test ratio
+        assert "Deepen test" not in report
+        assert "25%" not in report or "55" in report  # if 25% appears, 55% should too
+        # Should still suggest improving conventional commits (39% vs 70% target)
+        assert "conventional commit" in report.lower()
+
     def test_l0_roadmap_suppresses_already_met_signals(self) -> None:
         """L0 roadmap does not suggest adding test files when test ratio is already high."""
         from datetime import datetime, timezone
