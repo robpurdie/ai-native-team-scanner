@@ -12,14 +12,21 @@ class AIConfigDetector:
 
     # Known AI tool configuration files
     AI_CONFIG_FILES = {
+        # Claude (Anthropic)
+        "CLAUDE.md",
+        ".claude.json",
+        "claude_config.json",
+        # Cursor
         ".cursorrules",
+        # GitHub Copilot
         ".github/copilot-instructions.md",
         ".github/copilot-instructions.txt",
-        "claude_config.json",
-        ".claude.json",
-        ".ai/config.json",
+        # Aider
         ".aider.conf.yml",
+        # Continue
         ".continue/config.json",
+        # Generic
+        ".ai/config.json",
     }
 
     @classmethod

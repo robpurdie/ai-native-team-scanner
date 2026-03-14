@@ -1,0 +1,91 @@
+# AI-Native Team Scanner — Working Agreement with AI Tools
+# This file defines how AI assistants collaborate on this project.
+# It is the team's shared AI configuration, committed to version control
+# so all contributors (human and AI) work from the same standards.
+
+## Project Identity
+
+This is the AI-Native Team Scanner (codenamed "Aints") — a GitHub repository
+scanning tool that identifies teams which have genuinely integrated AI into
+their development practices. It is built with Python and hosted at
+https://github.com/robpurdie/ai-native-team-scanner.
+
+The scanner uses a two-dimensional maturity model (AI Adoption + Engineering
+Practices) scored at three levels: L0 (Not Yet), L1 (Integrating), L2 (AI-Native).
+The overall level is always the lower of the two dimensions.
+
+## Philosophy
+
+- Done means working software, not design artifacts or documentation
+- AI adoption and engineering discipline are inseparable — the lower-of-two rule
+  encodes this as a core design principle
+- Genuine AI integration must be distinguished from superficial adoption
+- Never lower coverage thresholds to make tests pass — write proper tests instead
+
+## Python Standards
+
+- Python 3.9.6 compatibility required — use Optional/Union from typing, not | syntax
+- Black for formatting (line length 100, configured in pyproject.toml)
+- isort for import sorting
+- flake8 for linting (max-line-length = 100, configured in .flake8)
+- mypy for type checking
+- All functions must have type annotations
+- All classes and public functions must have docstrings
+
+## Test-Driven Development
+
+- Write tests BEFORE implementation (TDD)
+- Acceptance tests written first as executable specifications
+- Selective unit tests for deterministic scoring logic
+- Never lower the coverage threshold (currently 80% minimum, typically 85%+)
+- Test files live in tests/ and follow test_<module>.py naming
+
+## Pre-Commit Workflow (always run before committing)
+
+1. black src/ tests/
+2. isort src/ tests/
+3. flake8 src/ tests/
+4. mypy src/
+5. pytest --cov=src --cov-report=term-missing --cov-fail-under=80
+
+Never commit without all checks passing locally.
+
+## Branching Discipline
+
+- main = stable releases only
+- dev = active development, all new work happens here
+- Never commit directly to main while external testers have access
+
+## Architecture Principles
+
+- scanner/models.py — data models only, no logic
+- scanner/detectors.py — signal detection, no scoring
+- scanner/scoring.py — threshold-based maturity scoring
+- scanner/gap_analysis.py — gap calculations, no reporting
+- scanner/reporter.py — markdown report generation, no scoring logic
+- scanner/cli.py — CLI interface only, thin orchestration layer
+- Keep modules single-responsibility and independently testable
+
+## Documentation Standards
+
+- No organisation-specific names in public GitHub documentation
+- No references to named colleagues in committed files
+- METHODOLOGY.md must be precise and defensible — high verifier audience
+- Update PROJECT_CONTEXT.md at the end of each significant session
+- Update CHANGELOG.md when releasing to main
+
+## Output Quality Standards
+
+- Report language must be meaningful to non-technical executives
+- Gap analysis must give concrete counts, not just percentages
+- Strategic roadmap must suppress guidance for thresholds already met
+- The goal is always AI-Native (L2) — every limiting dimension statement
+  should connect back to that north star
+- "Test file ratio" not "test coverage" — these are different measurements
+
+## What This Project Is Building Toward
+
+The scanner is a reference implementation with Cisco as the pilot organisation.
+The longer-term vision is a general-purpose tool for any organisation measuring
+AI-native team capability. Phase 1 (composite scoring, gap analysis, reporting)
+is complete. Phase 2 (batch scanning, comparative analysis) is next.
