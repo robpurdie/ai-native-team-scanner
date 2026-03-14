@@ -205,13 +205,25 @@ The **lower of the two scores** determines the team's level. This enforces inter
 ### 1. GitHub-only view
 Teams doing significant work outside GitHub (Jira, ServiceNow, design tools) won't be fully captured. This methodology is strongest for application development teams.
 
-### 2. Proxy signals
+### 2. Declared vs. Actual AI Involvement — A Critical Limitation
+
+The scanner detects AI adoption through commit message patterns — explicit tool mentions, characteristic phrasing, co-author tags, and structural signals like detailed multi-sentence descriptions. This measures *declared* AI use, not *actual* AI involvement.
+
+This is a significant undercount. A team using AI deeply but writing clean, professional commit messages in their own voice will score far lower than their actual AI adoption warrants. The scanner penalises good commit hygiene and rewards teams who happen to announce their AI use in commit messages.
+
+**Evidence from our own repository:** `robpurdie/ai-native-team-scanner` was built with AI assistance on 100% of commits, yet scores 47% AI commit rate — because commit messages are written professionally without flagging AI involvement.
+
+**Implication for Cisco:** Teams may be classified as "Not Yet" or "Integrating" when they are in fact deeply AI-integrated. Any coaching intervention based solely on scanner results risks being misdirected. Qualitative validation — asking teams directly about their AI tool usage — should accompany scanner results, especially at L0.
+
+**Planned improvement (Phase 2 P0):** Commit message + diff size correlation. A short commit message paired with a large, multi-file diff is a strong behavioural signal of AI-assisted work. Humans writing 200 lines across 8 files typically write longer commit messages. This signal requires no declared AI use and cannot be gamed by commit message style.
+
+### 3. Proxy signals
 Several signals (conventional commits, commit frequency) are proxies, not direct measurements. They correlate with AI-native working but aren't definitive proof.
 
-### 3. Gaming potential
+### 4. Gaming potential
 Teams could theoretically game some signals (add config files, artificially increase commits). The sustained-pattern requirement mitigates this, but doesn't eliminate it.
 
-### 4. Tool bias
+### 5. Tool bias
 Detection is optimized for certain AI tools (Claude, Copilot, Cursor). Teams using other tools may be under-counted.
 
 ## Validation Approach

@@ -101,6 +101,28 @@
 
 ## Phase 2: Enable Organizational Comparison
 
+### P0: Commit Message + Diff Size Correlation — Behavioural AI Detection
+**Feature:** Detect AI-assisted commits through behavioural signals (message length vs diff size) rather than declared signals (explicit AI mentions)
+
+**Why:** Current detection measures *declared* AI use — teams who mention AI tools in commit messages. This systematically undercounts teams who use AI deeply but write clean, professional commit messages. A team that scored 47% AI commit rate may in reality have 100% AI involvement. This is a fairness issue: the scanner currently penalises good commit hygiene.
+
+**Core insight:** A short commit message paired with a large, coordinated multi-file diff is a strong behavioural signal of AI-assisted work. Humans writing 200 lines across 8 files typically write longer, more explanatory commit messages. This ratio cannot be gamed by commit message style and requires no declared AI use.
+
+**Acceptance Criteria:**
+- Calculate message_length / diff_size ratio for each commit in the window
+- Classify commits where ratio falls below a threshold as likely AI-assisted
+- Combine with existing declared signals (explicit tool mentions, co-author tags)
+- Validate against known ground-truth repos (our own repo should score near 100%)
+- Threshold calibrated against real-world data — not hardcoded
+- All existing tests continue to pass
+- New signal documented in METHODOLOGY.md
+
+**Effort:** 4-6 hours
+
+**Note:** This changes scoring results for existing repos. Re-validate vercel/ai, cline/cline, and vscode-python after implementation to confirm scores move in the expected direction.
+
+---
+
 ### P0: Git Trees API — Batch Performance Optimization
 **Feature:** Replace recursive directory traversal with GitHub's Git Trees API (`git/trees?recursive=1`)
 
@@ -355,14 +377,14 @@
 **Focus:** Phase 2 — Enable Organizational Comparison
 
 **Committed:**
-1. Git Trees API optimisation (P0) — prerequisite for batch scanning
-2. Batch Scanning Mode (P0)
-3. Comparative Analysis Engine (P0)
-4. Comparative Report Generator (P0)
+1. Commit message + diff size correlation (P0) — fixes systematic AI adoption undercount
+2. Git Trees API optimisation (P0) — prerequisite for batch scanning
+3. Batch Scanning Mode (P0)
+4. Comparative Analysis Engine (P0)
+5. Comparative Report Generator (P0)
 
 **Also queued (from Phase 1 work):**
 - Enhanced CLI Output (P1) — composite scores + gap analysis in console
-- Better AI commit detection: commit message + diff size correlation
 
 **Success Metric:** Scan 50+ repos in a single run, generate org-wide dashboard report
 
