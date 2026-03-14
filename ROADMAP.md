@@ -6,18 +6,25 @@ Enable organizational leadership and coaching teams to **identify the best teams
 
 ## Strategic Context
 
-**Current State (v2.1.0):**
+**Current State (dev branch, March 14, 2026):**
 - ✅ Production-ready scanner with validated detection accuracy
-- ✅ Single-repo scanning with JSON output
+- ✅ Single-repo scanning with JSON and markdown report output
 - ✅ Two-dimensional maturity model (AI Adoption + Engineering Practices)
 - ✅ Level classification (L0/L1/L2)
+- ✅ Composite scores (0-100) for ranking within levels
+- ✅ Gap analysis with concrete next steps
+- ✅ Rich markdown reports with executive summaries and strategic roadmaps
+- ✅ Signal-aware roadmap suppression (no irrelevant guidance)
+- ✅ Human-AI pair scoring (min_commits threshold, not min_contributors)
+- ✅ CLAUDE.md working agreement committed and detected
+- ✅ Conventional commit enforcement via pre-commit hook
+- ✅ Validated against 4 real repos: vercel/ai, vscode-python, cline/cline, aints
 
 **The Gap:**
-- ❌ Results are demoralizing when most teams score L0
-- ❌ No way to distinguish between high-L0 and low-L0 teams
-- ❌ No actionable guidance on how to improve
 - ❌ No comparative analysis across teams
+- ❌ No batch scanning (one repo at a time)
 - ❌ No tracking of progress over time
+- ❌ AI commit detection measures declared AI use, not actual AI involvement
 
 **What Success Looks Like:**
 - Leadership can identify top 10 teams to spotlight (even if all are L0)
@@ -29,21 +36,20 @@ Enable organizational leadership and coaching teams to **identify the best teams
 
 ## Roadmap Phases
 
-### Phase 1: Make Results Actionable (Q2 2026)
+### ✅ Phase 1: Make Results Actionable — COMPLETE (March 14, 2026)
 **Goal:** Transform raw classifications into insights teams and leaders can act on
 
-**Capabilities:**
-- Composite scores (0-100) for ranking teams within levels
-- Gap analysis ("what would it take to reach next level?")
-- Automated narrative report generation (rich, actionable insights)
-- Single-repo deep-dive reports
+**Delivered:**
+- ✅ Composite scores (0-100) for ranking teams within levels
+- ✅ Gap analysis with concrete next steps (counts, not just percentages)
+- ✅ Rich markdown reports — seven sections, executive-ready language
+- ✅ Signal-aware roadmap suppression at L0 and L1
+- ✅ Gap analysis targets team's next level, not each dimension's next level
+- ✅ CLI `--report` flag generates markdown alongside JSON
+- ✅ Reports work without LLM dependencies
+- ✅ Validated against 4 real repos
 
-**Value Unlocked:**
-- Teams get actionable improvement roadmaps
-- Even L0 teams get meaningful feedback
-- Reports work without LLM dependencies (critical for enterprise deployment)
-
-**Deployment:** Single-repo mode enhanced, ready for pilot with individual teams
+**Deployment:** Single-repo mode complete, ready for pilot with individual teams
 
 ---
 
@@ -104,18 +110,19 @@ Enable organizational leadership and coaching teams to **identify the best teams
 
 ---
 
-## Current Focus: Phase 1
+## Current Focus: Phase 2
 
 **Immediate Priorities (Next 2-4 Weeks):**
 
-1. **Composite Scoring** — Add 0-100 scores to enable ranking
-2. **Gap Analysis** — Calculate concrete next steps for each team
-3. **Report Generator** — Automated markdown reports with narrative insights
+1. **Git Trees API** — Replace recursive file walking to reduce API calls by ~80-90%
+2. **Batch Scanning** — Scan 50-100 repos in a single CLI invocation
+3. **Comparative Analysis** — Percentiles, rankings, top performers
+4. **Comparative Report** — Org-wide dashboard for leadership presentations
 
 **Success Criteria:**
-- Scan a repo, get a rich markdown report with insights and recommendations
-- Report quality matches manually-created examples
-- No LLM dependency for report generation
+- Scan 50+ repos in a single run
+- Generate org-wide dashboard report
+- Pilot with a real domain to validate report quality and actionability
 
 ---
 
@@ -231,5 +238,5 @@ What this scanner will NOT do:
 
 ---
 
-*Last Updated: March 13, 2026*
-*Current Phase: Phase 1 (Make Results Actionable)*
+*Last Updated: March 14, 2026*
+*Current Phase: Phase 2 (Enable Organizational Comparison)*

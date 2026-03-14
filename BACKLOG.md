@@ -8,9 +8,9 @@
 
 ---
 
-## Phase 1: Make Results Actionable
+## Phase 1: Make Results Actionable ✅ Complete (March 14, 2026)
 
-### P0: Composite Scoring System
+### ✅ P0: Composite Scoring System — DONE
 **Feature:** Add 0-100 scores to both AI Adoption and Engineering Practices dimensions
 
 **Why:** Enable ranking teams even when they're all at the same maturity level (L0). Without this, we can't identify "best teams" or distinguish high-L0 from low-L0.
@@ -26,7 +26,7 @@
 
 ---
 
-### P0: Gap Analysis Engine
+### ✅ P0: Gap Analysis Engine — DONE
 **Feature:** Calculate concrete next steps needed to reach the next maturity level
 
 **Why:** Teams need actionable guidance, not just "you're L0." This answers "what would it take to reach L1?"
@@ -42,7 +42,7 @@
 
 ---
 
-### P0: Automated Report Generator
+### ✅ P0: Automated Report Generator — DONE
 **Feature:** Generate rich markdown reports programmatically (like high-quality manual reports)
 
 **Why:** Reports must work without LLM access in enterprise environments. Narrative insights make results actionable.
@@ -68,7 +68,7 @@
 
 ---
 
-### P1: Enhanced CLI Output
+### P1: Enhanced CLI Output — deferred to Phase 2
 **Feature:** Improve console output to include composite scores and gap analysis
 
 **Why:** Users need to see scores and next steps without opening JSON/markdown files
@@ -352,17 +352,36 @@
 
 ## Current Sprint (Next 1-2 Weeks)
 
-**Focus:** Phase 1 - Make Results Actionable
+**Focus:** Phase 2 — Enable Organizational Comparison
 
 **Committed:**
-1. ✅ Composite Scoring System (P0)
-2. ✅ Gap Analysis Engine (P0)
-3. ✅ Automated Report Generator (P0)
+1. Git Trees API optimisation (P0) — prerequisite for batch scanning
+2. Batch Scanning Mode (P0)
+3. Comparative Analysis Engine (P0)
+4. Comparative Report Generator (P0)
 
-**Stretch:**
-4. Enhanced CLI Output (P1)
+**Also queued (from Phase 1 work):**
+- Enhanced CLI Output (P1) — composite scores + gap analysis in console
+- Better AI commit detection: commit message + diff size correlation
 
-**Success Metric:** Scan a repo, get a rich actionable report comparable to high-quality manual analysis
+**Success Metric:** Scan 50+ repos in a single run, generate org-wide dashboard report
+
+---
+
+## Report Quality Improvements Delivered (March 14, 2026)
+
+These were not in the original backlog but were identified and fixed during real-world validation:
+
+- ✅ Dimension-aware executive summary descriptions
+- ✅ Limiting dimension statements now explain consequence for AI-Native goal
+- ✅ L0 roadmap suppresses guidance for thresholds already met
+- ✅ L1 roadmap suppresses guidance for individual signals already at L2 threshold
+- ✅ Gap analysis targets team's next overall level, not each dimension's individual next level
+- ✅ "Test file ratio" vs "test coverage" — corrected throughout
+- ✅ AI config file described as "working agreement with AI tools"
+- ✅ `min_contributors: 2` → `min_commits: 10` (human-AI pairs are legitimate team units)
+- ✅ `CLAUDE.md` added as AI config file and detected by scanner
+- ✅ Conventional commit enforcement via pre-commit hook (soft → hard constraint)
 
 ---
 
@@ -371,14 +390,14 @@
 **Next to groom:**
 - Batch scanning mode design (input format, error handling, progress tracking)
 - Comparative analysis algorithms (percentile calculation, ranking logic)
-- Report template refinement (which sections are essential vs. nice-to-have)
+- Git Trees API implementation approach
 
 **Technical debt to address:**
 - Test coverage for new features (maintain 85%+)
-- Documentation updates (README, METHODOLOGY)
-- Performance optimization for batch scanning (API rate limits, parallel processing)
+- Performance optimisation for batch scanning (API rate limits, parallel processing)
+- Better AI commit detection (declared vs actual AI involvement)
 
 ---
 
-*Last Updated: March 13, 2026*
-*Current Focus: Phase 1, Sprint 1*
+*Last Updated: March 14, 2026*
+*Current Focus: Phase 2, Sprint 1*
