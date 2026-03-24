@@ -59,10 +59,9 @@ Level 2 requires meeting thresholds across **two consecutive 90-day windows**. T
 
 | Signal | What We Look For | Detection Method |
 |--------|------------------|------------------|
-| **AI Tool Config** | `.cursorrules`, `.github/copilot-instructions.md`, `claude_config.json`, or similar team-level configuration files | File presence check |
-| **AI-Assisted Commits** | Commit messages or code patterns characteristic of AI generation | Pattern matching on commit metadata and diffs |
-| **AI-Generated Markers** | Comments, docstrings, or documentation with AI generation indicators | Content analysis of code comments and markdown files |
-| **Experimentation Evidence** | AI-related dependencies, prototype branches, or documented experiments | Package files, branch naming patterns, documentation |
+| **AI Tool Config File** | `CLAUDE.md`, `.cursorrules`, `AGENTS.md`, `.github/copilot-instructions.md`, `.aider.conf.yml`, `.claudeignore`, `.aiderignore`, `.copilotignore`, or similar team-level configuration or scoping files | File presence check at repo root and `.github/` |
+| **AI Co-Author Trailers** | Git commit trailers attributing authorship to a known AI agent: `Co-authored-by: GitHub Copilot`, `Co-authored-by: aider`, `Co-authored-by: Claude`, `Co-authored-by: Cursor` | Trailer parsing on commit message body — declared, not inferred |
+| **AI Tool Name in Commit Subject** | Explicit mention of a known AI tool name in the commit subject line | Pattern matching on commit subject — declared, not inferred |
 
 ### Scoring Thresholds
 
@@ -205,17 +204,17 @@ The **lower of the two scores** determines the team's level. This enforces inter
 ### 1. GitHub-only view
 Teams doing significant work outside GitHub (Jira, ServiceNow, design tools) won't be fully captured. This methodology is strongest for application development teams.
 
-### 2. Declared vs. Actual AI Involvement — A Critical Limitation
+### 2. Declared vs. Actual AI Involvement — A Known Limitation
 
-The scanner detects AI adoption through commit message patterns — explicit tool mentions, characteristic phrasing, co-author tags, and structural signals like detailed multi-sentence descriptions. This measures *declared* AI use, not *actual* AI involvement.
+The scanner detects AI adoption exclusively through *declared* signals — config files teams have committed, co-author git trailers AI tools write automatically, and explicit tool name mentions in commit subjects. It does not infer AI involvement from behavioural patterns (verbose commit messages, bullet points, large diffs, etc.).
 
-This is a significant undercount. A team using AI deeply but writing clean, professional commit messages in their own voice will score far lower than their actual AI adoption warrants. The scanner penalises good commit hygiene and rewards teams who happen to announce their AI use in commit messages.
+This is an intentional undercounting strategy. A team using AI deeply but writing clean, professional commit messages without co-author trailers will score lower than their actual AI adoption warrants. This is a known, documentable limitation — preferable to overcounting based on inference, which produces silent errors that erode trust in scores.
 
-**Evidence from our own repository:** `robpurdie/ai-native-team-scanner` was built with AI assistance on 100% of commits, yet scores 47% AI commit rate — because commit messages are written professionally without flagging AI involvement.
+**Evidence from our own repository:** `robpurdie/ai-native-team-scanner` is built with AI assistance on 100% of commits via Claude.ai chat (not Claude Code), so no co-author trailers are generated. The repo scores on the basis of `CLAUDE.md` (config file signal) and explicit "Claude" mentions in some commit subjects only.
 
-**Implication for Cisco:** Teams may be classified as "Not Yet" or "Integrating" when they are in fact deeply AI-integrated. Any coaching intervention based solely on scanner results risks being misdirected. Qualitative validation — asking teams directly about their AI tool usage — should accompany scanner results, especially at L0.
+**Implication for Cisco:** Teams may be classified as "Not Yet" or "Integrating" when they are in fact deeply AI-integrated. Qualitative validation — asking teams directly about their AI tool usage — should accompany scanner results, especially at L0.
 
-**Planned improvement (Phase 2 P0):** Expand declared signal detection. Rather than inferring AI involvement from behavioural patterns (e.g. short message + large diff), the scanner will detect more forms of declared AI use: AI attribution in code comments and docstrings, GitHub Copilot commit metadata, AI-generated PR descriptions, and broader co-author tag patterns. Behavioural inference was considered and rejected — undercounting is a known, documentable limitation, but overcounting based on inference produces silent errors that erode trust in scores.
+**Design principle confirmed:** Behavioural inference was considered and rejected. Undercounting is a known, documentable limitation; overcounting based on circumstantial signals produces silent errors that erode trust in scores. The scanner will only expand signal detection when the new signal constitutes a genuine declaration by the team or their tooling.
 
 ### 3. Proxy signals
 Several signals (conventional commits, commit frequency) are proxies, not direct measurements. They correlate with AI-native working but aren't definitive proof.
@@ -223,8 +222,8 @@ Several signals (conventional commits, commit frequency) are proxies, not direct
 ### 4. Gaming potential
 Teams could theoretically game some signals (add config files, artificially increase commits). The sustained-pattern requirement mitigates this, but doesn't eliminate it.
 
-### 5. Tool bias
-Detection is optimized for certain AI tools (Claude, Copilot, Cursor). Teams using other tools may be under-counted.
+### 5. Tool coverage
+Co-author trailer detection covers: GitHub Copilot, Claude Code, aider, and Cursor. Config file detection covers: `CLAUDE.md`, `.cursorrules`, `AGENTS.md`, `.github/copilot-instructions.md`, `.aider.conf.yml`, `.claudeignore`, `.aiderignore`, `.copilotignore`, and others. Teams using tools outside these patterns will be undercounted. New tools are added as their trailer and config file conventions become established.
 
 ## Validation Approach
 
