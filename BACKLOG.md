@@ -101,7 +101,7 @@
 
 ## Phase 2: Enable Organizational Comparison
 
-### P0: Expand Declared AI Signal Detection
+### ✅ P0: Expand Declared AI Signal Detection — DONE (March 24, 2026)
 **Feature:** Detect more forms of declared AI use beyond commit message text patterns
 
 **Why:** Current detection measures declared AI use through commit message patterns, but misses many real forms of declaration. Our own repo — built with AI on 100% of commits — scores only 47% because commit messages are written professionally without flagging AI involvement. The solution is not to *infer* AI involvement from circumstantial signals (e.g. short message + large diff), but to detect more of the ways teams *declare* AI use.
@@ -473,7 +473,7 @@
 
 ---
 
-### P1: Detect `AGENTS.md` as Declared AI Signal
+### ✅ P1: Detect `AGENTS.md` as Declared AI Signal — DONE (March 24, 2026)
 **Feature:** Add `AGENTS.md` to `AIConfigDetector` alongside `CLAUDE.md`
 
 **Why:** `AGENTS.md` is the emerging cross-tool standard for AI agent instructions — OpenAI Codex, Google Jules, and others look for this file. Teams using Claude Code, Codex, or multi-agent workflows may commit `AGENTS.md` but not `CLAUDE.md`. Missing this signal systematically undercounts AI-native teams using non-Claude tooling. Real-world example: Ken Judy's `kenjudy/pdca-code-generation-process` repo uses `AGENTS.md` for agent instructions without a `CLAUDE.md`.
@@ -491,7 +491,7 @@
 
 ---
 
-### P1: Detect `.claudeignore` as Declared AI Signal
+### ✅ P1: Detect `.claudeignore` as Declared AI Signal — DONE (March 24, 2026)
 **Feature:** Add `.claudeignore` (and analogous files like `.aiderignore`, `.copilotignore`) to `AIConfigDetector`
 
 **Why:** A team that has committed a `.claudeignore` file is deliberately scoping what AI tooling can see — this is a clear act of AI configuration. It's a stronger signal than a README mention because it requires intentional file creation and ongoing maintenance. Currently invisible to the scanner.
@@ -534,7 +534,7 @@
 
 ---
 
-### P2: Detect Co-author Attribution to AI Agents
+### ✅ P2: Detect Co-author Attribution to AI Agents — DONE (March 24, 2026) — implemented as CoAuthorDetector
 **Feature:** Detect `Co-authored-by:` git trailer lines attributing authorship to AI tools as a declared commit-level signal
 
 **Why:** Some teams configure their AI tooling to add `Co-authored-by: claude <noreply@anthropic.com>` or similar trailers to commit messages. This is an explicit, machine-readable declaration that AI contributed to a commit. It's currently invisible to the scanner. Real-world example: `kenjudy/pdca-code-generation-process` uses a `claude` GitHub account as a co-author, surfacing in GitHub's contributor graph.
@@ -707,4 +707,4 @@ These were not in the original backlog but were identified and fixed during real
 ---
 
 *Last Updated: March 24, 2026*
-*Current Focus: Phase 2, Sprint 1*
+*Current Focus: Phase 2, Sprint 2 — Git Trees API + Batch Scanning*
