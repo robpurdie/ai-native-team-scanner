@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Set
 
 from github.Repository import Repository
 
-from scanner.detectors import CommitPatternDetector, ConventionalCommitDetector
+from scanner.detectors import CoAuthorDetector, CommitPatternDetector, ConventionalCommitDetector
 from scanner.models import ObservationWindow
 
 
@@ -56,8 +56,10 @@ class CommitAnalyzer:
         """
         total_commits = 0
         ai_assisted_commits = 0
+        co_author_ai_commits = 0
         conventional_commits = 0
         contributors_with_ai = set()
+        tool_counts: Dict[str, int] = {}
 
         try:
             commits = self.repo.get_commits(
@@ -68,11 +70,23 @@ class CommitAnalyzer:
                 total_commits += 1
                 message = commit.commit.message
 
-                # Check for AI assistance
-                if CommitPatternDetector.is_ai_assisted(message):
+                # Check for declared AI co-author trailers
+                co_author_detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+
+                # Check for pattern-based AI assistance
+                pattern_detected = CommitPatternDetector.is_ai_assisted(message)
+
+                # Union: count as AI-assisted if either fires (no double-counting)
+                if co_author_detected or pattern_detected:
                     ai_assisted_commits += 1
                     if commit.author:
                         contributors_with_ai.add(commit.author.login)
+
+                # Track co-author detections separately
+                if co_author_detected:
+                    co_author_ai_commits += 1
+                    if tool:
+                        tool_counts[tool] = tool_counts.get(tool, 0) + 1
 
                 # Check for conventional format
                 if ConventionalCommitDetector.is_conventional(message):
@@ -84,6 +98,8 @@ class CommitAnalyzer:
         return {
             "total_commits": total_commits,
             "ai_assisted_commits": ai_assisted_commits,
+            "co_author_ai_commit_count": co_author_ai_commits,
+            "co_author_tool_counts": tool_counts,
             "conventional_commits": conventional_commits,
             "contributors_with_ai": contributors_with_ai,
         }

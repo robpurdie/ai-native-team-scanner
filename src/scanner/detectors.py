@@ -69,47 +69,81 @@ class AIConfigDetector:
             return False, None
 
 
-class CommitPatternDetector:
-    """Detect AI-assisted commit patterns."""
+class CoAuthorDetector:
+    """Detect AI agent co-author git trailer signatures.
 
-    # Patterns that suggest AI assistance
+    Parses git trailers from commit message body for machine-generated
+    AI agent attribution. These are automatic (no human discipline required)
+    and constitute a declared signal -- the tool put them there.
+    """
+
+    # Known AI tool patterns -- matched case-insensitively against co-author value.
+    # Order matters: more specific patterns must precede broader ones.
+    # 'aider' before 'claude' because aider commits include the model name
+    # (e.g. 'aider (claude-3-5-sonnet)') which would otherwise match claude first.
+    AI_TOOL_PATTERNS = [
+        (r"copilot", "copilot"),
+        (r"aider", "aider"),
+        (r"cursor", "cursor"),
+        (r"claude", "claude_code"),
+    ]
+
+    # Co-author trailer line pattern
+    COAUTHOR_PATTERN = re.compile(
+        r"^Co-[Aa]uthored-[Bb]y:\s*(.+)$",
+        re.MULTILINE,
+    )
+
+    @classmethod
+    def detect_ai_coauthor(cls, commit_message: str) -> Tuple[bool, Optional[str]]:
+        """Parse git trailers for AI agent co-author signatures.
+
+        Matches only on co-author trailer values -- not on commit message prose.
+        Only known AI tools are detected; undercounting is preferable to
+        false positives from unknown patterns.
+
+        Args:
+            commit_message: Full commit message including body and trailers.
+
+        Returns:
+            Tuple of (detected: bool, tool: Optional[str])
+            tool is one of: 'copilot', 'claude_code', 'aider', 'cursor', or None.
+        """
+        trailer_values = cls.COAUTHOR_PATTERN.findall(commit_message)
+        if not trailer_values:
+            return False, None
+
+        for trailer_value in trailer_values:
+            trailer_lower = trailer_value.lower()
+            for pattern, tool_name in cls.AI_TOOL_PATTERNS:
+                if re.search(pattern, trailer_lower):
+                    return True, tool_name
+
+        return False, None
+
+
+class CommitPatternDetector:
+    """Detect declared AI tool mentions in commit message subject lines.
+
+    Covers teams that name the AI tool in their commit message but do not
+    use co-author trailers. Co-author trailer detection is handled separately
+    by CoAuthorDetector. No behavioral inference is used.
+    """
+
+    # Explicit AI tool name mentions only -- declared, not inferred.
     AI_COMMIT_PATTERNS = [
-        # Explicit AI tool mentions (keep existing - high confidence)
         r"(?i)\b(copilot|claude|cursor|aider|chatgpt|gpt-?4|codewhisperer|tabnine)\b",
-        r"(?i)co-?authored-by.*(copilot|claude|ai|assistant)",
-        r"(?i)\bai\b.*(assist|generat|suggest)",
-        # Verbose conventional commits (AI tends to be detailed)
-        r"(?i)^(feat|fix|refactor|chore|docs|style|test|perf)(\([^)]+\))?: "
-        r"(add|update|improve|enhance|optimize|refactor).{40,}",
-        # Multiple sentences with connectors (AI pattern)
-        r"\.[\s\n]+(This|Additionally|Also|Furthermore|Moreover|It also)",
-        # Bullet points in commit messages (common AI pattern)
-        r"(?m)^[-*•]\s+",
-        # Specific improvement language (AI often uses this phrasing)
-        r"(?i)\b(improve|enhance|optimize|refactor|streamline)\b.{0,30}"
-        r"\b(performance|readability|maintainability|efficiency|code quality)\b",
-        # Documentation additions (AI frequently adds comprehensive docs)
-        r"(?i)^docs?(\([^)]+\))?: (add|update|improve).{0,30}"
-        r"\b(documentation|docstring|comment|readme|guide)\b",
-        # Test additions with detail (AI often suggests comprehensive tests)
-        r"(?i)^test(\([^)]+\))?: (add|update).{0,30}"
-        r"\b(tests?|specs?|coverage|unit tests?|integration tests?)\b",
-        # Type safety improvements (AI commonly suggests this)
-        r"(?i)(add|update|improve).{0,30}"
-        r"\b(type annotation|typing|type hint|interface|type safety)\b",
-        # Error handling improvements (AI pattern)
-        r"(?i)(add|improve).{0,30}\b(error handling|exception|validation|error message)\b",
     ]
 
     @classmethod
     def is_ai_assisted(cls, commit_message: str) -> bool:
-        """Check if commit message suggests AI assistance.
+        """Check if commit message contains an explicit AI tool name declaration.
 
         Args:
             commit_message: Commit message text
 
         Returns:
-            True if AI patterns detected
+            True if a known AI tool name is found
         """
         for pattern in cls.AI_COMMIT_PATTERNS:
             if re.search(pattern, commit_message):

@@ -11,26 +11,49 @@ from scanner.detectors import (
 
 
 class TestCommitPatternDetector:
-    """Tests for AI commit pattern detection."""
+    """Tests for declared AI tool name detection in commit subject lines.
 
-    def test_detects_copilot_coauthor(self):
-        """Test detection of Copilot co-author."""
-        message = "feat: add new feature\n\nCo-authored-by: GitHub Copilot"
-        assert CommitPatternDetector.is_ai_assisted(message)
+    CommitPatternDetector covers explicit tool name mentions only.
+    Co-author trailer detection is handled by CoAuthorDetector.
+    """
 
     def test_detects_claude_mention(self):
-        """Test detection of Claude mention."""
+        """Test detection of Claude name in commit subject."""
         message = "fix: refactor with Claude's suggestions"
         assert CommitPatternDetector.is_ai_assisted(message)
 
-    def test_detects_ai_generated(self):
-        """Test detection of AI generated marker."""
-        message = "feat: AI-generated unit tests"
+    def test_detects_copilot_mention(self):
+        """Test detection of Copilot name in commit subject."""
+        message = "feat: add feature using Copilot"
         assert CommitPatternDetector.is_ai_assisted(message)
 
-    def test_no_false_positive(self):
+    def test_detects_aider_mention(self):
+        """Test detection of aider name in commit subject."""
+        message = "refactor: cleaned up with aider"
+        assert CommitPatternDetector.is_ai_assisted(message)
+
+    def test_no_false_positive_normal_commit(self):
         """Test normal commits don't trigger detection."""
         message = "fix: resolve bug in authentication"
+        assert not CommitPatternDetector.is_ai_assisted(message)
+
+    def test_no_false_positive_verbose_commit(self):
+        """Test that verbose commit messages without tool names don't trigger detection."""
+        message = (
+            "refactor: improve readability and maintainability\n\n"
+            "- Extract helper functions\n"
+            "- Add type annotations\n"
+            "- Improve error handling"
+        )
+        assert not CommitPatternDetector.is_ai_assisted(message)
+
+    def test_coauthor_trailer_not_matched_by_pattern_detector(self):
+        """Test that co-author trailers alone do not trigger CommitPatternDetector.
+
+        Co-author trailers are the responsibility of CoAuthorDetector.
+        CommitPatternDetector should only match tool names in the subject line.
+        """
+        message = "feat: add feature\n\nCo-authored-by: Jane Smith <jane@example.com>"
         assert not CommitPatternDetector.is_ai_assisted(message)
 
 
@@ -229,6 +252,97 @@ class TestDocumentationDetector:
 
         assert readme_present is False
         assert len(docs) == 0
+
+
+class TestCoAuthorDetector:
+    """Tests for AI co-author git trailer detection."""
+
+    def test_detects_copilot_coauthor(self):
+        """Test detection of GitHub Copilot co-author trailer."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = "feat: add feature\n\nCo-authored-by: GitHub Copilot <copilot@github.com>"
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is True
+        assert tool == "copilot"
+
+    def test_detects_aider_coauthor(self):
+        """Test detection of aider co-author trailer."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = "fix: bug\n\nCo-authored-by: aider (claude-3-5-sonnet) <aider@aider.chat>"
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is True
+        assert tool == "aider"
+
+    def test_detects_claude_code_coauthor(self):
+        """Test detection of Claude/Anthropic co-author trailer."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = "chore: update\n\nCo-authored-by: Claude <claude@anthropic.com>"
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is True
+        assert tool == "claude_code"
+
+    def test_detects_cursor_coauthor(self):
+        """Test detection of Cursor co-author trailer."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = "refactor: clean up\n\nCo-authored-by: Cursor <cursor@cursor.sh>"
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is True
+        assert tool == "cursor"
+
+    def test_no_coauthor_trailer(self):
+        """Test that commits without co-author trailers return False."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = "feat: add feature"
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is False
+        assert tool is None
+
+    def test_human_coauthor_not_detected(self):
+        """Test that human co-author trailers do not trigger detection."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = "feat: add feature\n\nCo-authored-by: Jane Smith <jane@example.com>"
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is False
+        assert tool is None
+
+    def test_case_insensitive_matching(self):
+        """Test that matching is case-insensitive."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = "feat: thing\n\nCo-Authored-By: GITHUB COPILOT <COPILOT@GITHUB.COM>"
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is True
+        assert tool == "copilot"
+
+    def test_prose_mention_does_not_match(self):
+        """Test that AI tool names in commit body prose do not trigger detection."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = (
+            "feat: add copilot integration\n\nThis adds GitHub Copilot support to the workflow."
+        )
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is False
+        assert tool is None
+
+    def test_multiple_trailers_ai_wins(self):
+        """Test that AI is detected when mixed with human co-authors."""
+        from scanner.detectors import CoAuthorDetector
+
+        message = (
+            "feat: pair programming\n\n"
+            "Co-authored-by: Jane Smith <jane@example.com>\n"
+            "Co-authored-by: GitHub Copilot <copilot@github.com>"
+        )
+        detected, tool = CoAuthorDetector.detect_ai_coauthor(message)
+        assert detected is True
+        assert tool == "copilot"
 
 
 class TestFileTypeDetector:

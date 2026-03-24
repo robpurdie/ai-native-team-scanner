@@ -50,6 +50,8 @@ class TestMinCommitsThreshold:
             "ai_assisted_commits": 35,
             "conventional_commits": 40,
             "contributors_with_ai": {"rob@example.com"},
+            "co_author_ai_commit_count": 0,
+            "co_author_tool_counts": {},
         }
 
         with (

@@ -62,9 +62,9 @@ class TestCommitAnalyzer:
         """Test basic commit analysis."""
         repo = Mock()
 
-        # Mock commits
+        # Mock commits -- declared tool name triggers detection
         commit1 = Mock()
-        commit1.commit.message = "feat: add feature with AI assistance"
+        commit1.commit.message = "feat: add feature using Claude"
         commit1.author.login = "alice"
 
         commit2 = Mock()
@@ -82,6 +82,9 @@ class TestCommitAnalyzer:
         assert result["ai_assisted_commits"] == 1
         assert result["conventional_commits"] == 2  # Both commits are conventional format
         assert "alice" in result["contributors_with_ai"]
+        assert "co_author_ai_commit_count" in result
+        assert "co_author_tool_counts" in result
+        assert result["co_author_ai_commit_count"] == 0  # No co-author trailers used
 
     def test_analyze_commits_with_ai_patterns(self):
         """Test detecting AI-assisted commits."""

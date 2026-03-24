@@ -135,6 +135,8 @@ class TeamScorer:
             contributors_with_ai_patterns=contributors_with_ai,
             total_contributors=contributor_count,
             contributor_ai_rate=contributor_ai_rate,
+            co_author_ai_commit_count=commit_analysis["co_author_ai_commit_count"],
+            co_author_tool_counts=commit_analysis["co_author_tool_counts"],
         )
 
     def _detect_engineering_signals(

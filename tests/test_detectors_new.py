@@ -4,7 +4,7 @@ These tests currently FAIL but should PASS after implementing the detector impro
 Run with: pytest tests/test_detectors_new.py -v
 """
 
-from scanner.detectors import CommitPatternDetector, FileTypeDetector
+from scanner.detectors import FileTypeDetector
 
 
 class TestFileTypeDetectorImprovements:
@@ -60,117 +60,6 @@ class TestFileTypeDetectorImprovements:
         """Test PHP test patterns."""
         assert FileTypeDetector.is_test_file("UserTest.php")
         assert FileTypeDetector.is_test_file("tests/UserTest.php")
-
-
-class TestCommitPatternDetectorImprovements:
-    """Tests for enhanced AI commit detection."""
-
-    # Verbose, structured commits (AI characteristic)
-    def test_detects_verbose_conventional_commit(self) -> None:
-        """Test detection of verbose conventional commits."""
-        message = (
-            "feat(auth): Add comprehensive OAuth2 authentication with JWT token "
-            "validation and refresh token support"
-        )
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    def test_detects_detailed_refactor(self) -> None:
-        """Test detection of detailed refactor commits."""
-        message = (
-            "refactor: Optimize database query performance by adding proper "
-            "indexes and implementing query result caching"
-        )
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    # Multiple sentences (AI pattern)
-    def test_detects_multi_sentence_commits(self) -> None:
-        """Test detection of commits with multiple sentences."""
-        message = (
-            "fix: Resolve authentication timeout issue. This fixes the problem by "
-            "extending the session timeout to 30 minutes."
-        )
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    def test_detects_commits_with_connectors(self) -> None:
-        """Test detection of commits with sentence connectors."""
-        message = (
-            "feat: Add user profile page. Additionally, this includes avatar upload functionality."
-        )
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    # Bullet points (AI pattern)
-    def test_detects_commits_with_bullets(self) -> None:
-        """Test detection of commits with bullet points."""
-        message = """feat: Implement user dashboard
-
-- Add user statistics widget
-- Implement activity feed
-- Add notification panel"""
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    # Improvement language (AI pattern)
-    def test_detects_performance_improvements(self) -> None:
-        """Test detection of performance improvement language."""
-        message = "refactor: Improve performance by optimizing query execution"
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    def test_detects_readability_improvements(self) -> None:
-        """Test detection of readability improvement language."""
-        message = "refactor: Enhance code readability through better variable naming"
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    # Documentation additions (AI pattern)
-    def test_detects_documentation_additions(self) -> None:
-        """Test detection of documentation additions."""
-        message = "docs: Add comprehensive API documentation for user endpoints"
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    def test_detects_docstring_updates(self) -> None:
-        """Test detection of docstring updates."""
-        message = "docs(core): Update docstrings with detailed parameter descriptions"
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    # Test additions (AI pattern)
-    def test_detects_test_additions(self) -> None:
-        """Test detection of test additions."""
-        message = "test: Add unit tests for authentication service"
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    def test_detects_coverage_improvements(self) -> None:
-        """Test detection of coverage improvements."""
-        message = "test(api): Update test coverage for edge cases"
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    # Type safety (AI pattern)
-    def test_detects_type_annotation_additions(self) -> None:
-        """Test detection of type annotation additions."""
-        message = "refactor: Add type annotations to improve type safety"
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    # Error handling (AI pattern)
-    def test_detects_error_handling_improvements(self) -> None:
-        """Test detection of error handling improvements."""
-        message = "fix: Improve error handling with proper exception validation"
-        assert CommitPatternDetector.is_ai_assisted(message)
-
-    # Make sure we don't break existing functionality
-    def test_still_detects_explicit_tool_mentions(self) -> None:
-        """Test that explicit tool mentions still work."""
-        assert CommitPatternDetector.is_ai_assisted("feat: add feature with Copilot")
-        assert CommitPatternDetector.is_ai_assisted("fix: Claude suggested this fix")
-
-    def test_no_false_positive_on_simple_commits(self) -> None:
-        """Test that simple commits don't trigger detection."""
-        assert not CommitPatternDetector.is_ai_assisted("fix typo")
-        assert not CommitPatternDetector.is_ai_assisted("update readme")
-        assert not CommitPatternDetector.is_ai_assisted("WIP")
-
-    def test_no_false_positive_on_normal_conventional(self) -> None:
-        """Test that normal conventional commits don't always trigger."""
-        # Short, simple conventional commits should NOT trigger
-        assert not CommitPatternDetector.is_ai_assisted("feat: add button")
-        assert not CommitPatternDetector.is_ai_assisted("fix: resolve bug")
-        assert not CommitPatternDetector.is_ai_assisted("docs: update FAQ")
 
 
 class TestCodeFileDetectorImprovements:

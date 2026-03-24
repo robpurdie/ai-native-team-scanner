@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -40,6 +40,8 @@ class AIAdoptionSignals:
     contributors_with_ai_patterns: int = 0
     total_contributors: int = 0
     contributor_ai_rate: float = 0.0
+    co_author_ai_commit_count: int = 0
+    co_author_tool_counts: Dict[str, int] = field(default_factory=dict)
 
 
 @dataclass

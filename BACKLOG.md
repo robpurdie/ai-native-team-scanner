@@ -287,6 +287,145 @@
 
 ## Additional Detection Signals (Future)
 
+---
+
+## Engineering Health Signals (AI Code Drift)
+
+> Items in this section are informed by research and tooling from Ken Judy's **[stride-nyc/code-quality-metrics](https://github.com/stride-nyc/code-quality-metrics)** (CC BY 4.0). Ken's work establishes that merge squashing destroys 90%+ of the granular commit signals needed to detect AI code drift — meaning remote-only analysis (what Aints currently does) systematically misses the development patterns that matter most. The items below represent ways to extend Aints to detect and surface these patterns.
+
+---
+
+### P1: Commit Size Distribution (Large Commit % Signal)
+**Feature:** Add large commit percentage to the Engineering Practices dimension score
+
+**Why:** Commits with >100 lines of changes are an early warning signal for wholesale AI code acceptance — developers accepting large AI-generated blocks without decomposition. Ken Judy's research found 46% large commit rates in AI-assisted projects vs. a healthy target of <20%. Currently Aints scores commit patterns only by conventional format and AI attribution, missing size discipline entirely.
+
+**Metric definition:** `large_commit_pct` = % of commits where `additions + deletions > 100`
+
+**Scoring:**
+- <20% large commits → healthy (full score)
+- 20-40% → warning (partial score)
+- >40% → poor (no score)
+
+**Design note:** This is an inferential signal (large commits *may* indicate AI batch acceptance) but it also measures legitimate engineering discipline independent of AI — teams that write small, focused commits are better engineers regardless. It belongs in Engineering Practices, not AI Adoption.
+
+**Acceptance Criteria:**
+- `CommitAnalyzer` extended to compute `large_commit_pct` from commit stats (`additions + deletions`)
+- Score incorporated into Engineering Practices composite formula (weight TBD — suggest 10 points)
+- Threshold documented in `METHODOLOGY.md`
+- All existing tests pass; new tests cover large commit calculation
+- Validated against real repos (vercel/ai, microsoft/vscode-python)
+
+**Effort:** 3-5 hours
+
+**Attribution:** Metric definition and thresholds from Ken Judy, "Measuring AI Code Drift" (CC BY 4.0). See: https://github.com/stride-nyc/code-quality-metrics
+
+---
+
+### P1: Commit Sprawl Detection (Sprawling Commit % Signal)
+**Feature:** Add sprawling commit percentage to the Engineering Practices dimension score
+
+**Why:** Commits touching >5 files simultaneously often indicate AI-suggested "fixes" that ripple through unrelated components — "shotgun" problem-solving that correlates with reduced engineering discipline. Target: <10%. Ken Judy found 20% sprawling commit rates in AI-assisted projects.
+
+**Metric definition:** `sprawling_commit_pct` = % of commits where `files_changed > 5`
+
+**Scoring:**
+- <10% → healthy (full score)
+- 10-25% → warning (partial score)
+- >25% → poor (no score)
+
+**Design note:** Like commit size, this measures engineering discipline independently of AI adoption. A team that writes focused, single-concern commits is exhibiting good engineering behavior whether or not AI is involved. Engineering Practices dimension.
+
+**Acceptance Criteria:**
+- `CommitAnalyzer` extended to compute `sprawling_commit_pct` from commit stats (`changed_files`)
+- Score incorporated into Engineering Practices composite formula (weight TBD — suggest 10 points)
+- Threshold documented in `METHODOLOGY.md`
+- All existing tests pass; new tests cover sprawling commit calculation
+
+**Effort:** 2-3 hours
+
+**Attribution:** Metric definition and thresholds from Ken Judy, "Measuring AI Code Drift" (CC BY 4.0). See: https://github.com/stride-nyc/code-quality-metrics
+
+---
+
+### P2: Test-to-Production Ratio (Per-Commit)
+**Feature:** Add per-commit test-to-production line ratio as a refined test discipline signal
+
+**Why:** Aints currently detects test files by counting files matching test patterns (binary: present/not). Ken Judy's PR analysis workflow goes further — it computes the ratio of test lines changed to production lines changed per commit, and classifies commits as test-first, test-only, prod-only, or mixed. This gives a much richer picture of TDD discipline than file presence alone.
+
+**Metric definition:**
+- For each commit: `test_ratio = test_line_changes / prod_line_changes`
+- `test_first_rate` = % of commits with both test and prod changes (proxy for TDD)
+- `prod_only_rate` = % of commits with prod changes but zero test changes (TDD warning signal)
+- Target test ratio: 0.5–2.0 test lines per production line
+
+**Scoring refinement:** Current binary test-file-presence score (0 or 1) could be replaced with a graduated score based on `test_ratio` and `prod_only_rate`.
+
+**Acceptance Criteria:**
+- `CommitAnalyzer` extended to compute per-commit test/prod file separation using configurable `TEST_FILE_PATTERNS`
+- `test_ratio`, `test_first_rate`, and `prod_only_rate` computed and included in JSON output
+- Existing test file ratio score in Engineering Practices replaced or augmented with graduated scoring
+- `TEST_FILE_PATTERNS` configurable per scan (to support Python, Go, Java, C# conventions)
+- All existing tests pass; new tests cover ratio calculation and classification
+- Validated against real repos
+
+**Effort:** 4-6 hours
+
+**Attribution:** Per-commit test/prod ratio approach from Ken Judy, `stride-nyc/code-quality-metrics` PR metrics workflow (CC BY 4.0). See: https://github.com/stride-nyc/code-quality-metrics
+
+---
+
+### P2: Merge-Squash Signal Loss Warning
+**Feature:** Detect when a repo uses merge squashing and warn that commit-level drift signals are unreliable
+
+**Why:** Ken Judy's key research finding: merge squashing destroys 90%+ of the granular commit signals needed to detect AI code drift. A repo showing "4 commits over 30 days, 0% large commits" in remote analysis may have "50 commits across feature branches, 46% large commits" locally. Aints currently scans only the remote default branch, making it blind to this distortion. Rather than claiming accurate commit metrics on squash-merge repos, we should detect and disclose the limitation.
+
+**Detection heuristic:** Squash merging is likely in use when:
+- Commit count is very low relative to time period and contributor count
+- PR merge commits are present in history (GitHub squash-merge format)
+- Repo settings (if accessible via API) show squash merge enabled
+
+**Acceptance Criteria:**
+- Scanner detects likely squash-merge patterns from commit history
+- When detected: commit-size and commit-sprawl signals flagged as "unreliable" in JSON output and report
+- Report section added explaining the limitation and recommending feature branch analysis
+- Does not affect AI adoption signals (co-author tags, config files, etc.) — those are unaffected by squashing
+- All existing tests pass
+
+**Effort:** 3-5 hours
+
+**Attribution:** Squash-merge signal loss analysis from Ken Judy, "Measuring AI Code Drift" (CC BY 4.0). See: https://github.com/stride-nyc/code-quality-metrics
+
+---
+
+### P3: Feature Branch Analysis Mode
+**Feature:** Optional scan mode that analyzes feature branches in addition to (or instead of) the default branch
+
+**Why:** The most accurate commit-level drift signals live in feature branches before squash-merging. Ken Judy's local analysis script demonstrates this — local feature branch analysis reveals 10x higher drift rates than remote default-branch analysis. For teams serious about measuring actual development behavior, default-branch-only scanning is fundamentally limited.
+
+**Design considerations:**
+- Opt-in: `--feature-branches` flag or config option (many orgs auto-delete branches, making this impossible)
+- List branches, filter to non-main/master, analyze commits from each
+- Deduplicate commits by SHA across branches
+- Rate limit implications: feature branch analysis multiplies API calls significantly; requires Git Trees API optimization first
+
+**Acceptance Criteria:**
+- `--feature-branches` CLI flag enables multi-branch analysis
+- Branches older than configurable threshold excluded
+- Duplicate commits (same SHA) deduplicated across branches
+- Commit drift metrics computed across full feature branch history
+- Warning emitted when no feature branches found (auto-delete likely enabled)
+- Single-branch (default) behavior unchanged when flag not set
+- All existing tests pass; feature branch mode has its own test class
+
+**Effort:** 1-2 days
+
+**Note:** Depends on Git Trees API optimization (P0) and Commit Size/Sprawl signals (P1) above.
+
+**Attribution:** Feature branch analysis approach from Ken Judy, `stride-nyc/code-quality-metrics` (CC BY 4.0). See: https://github.com/stride-nyc/code-quality-metrics
+
+---
+
 ### P2: Pull Request Review Patterns
 **Feature:** Detect code review culture and AI review involvement
 
@@ -331,6 +470,140 @@
 - Add granularity to AI adoption dimension
 
 **Effort:** 1-2 days
+
+---
+
+### P1: Detect `AGENTS.md` as Declared AI Signal
+**Feature:** Add `AGENTS.md` to `AIConfigDetector` alongside `CLAUDE.md`
+
+**Why:** `AGENTS.md` is the emerging cross-tool standard for AI agent instructions — OpenAI Codex, Google Jules, and others look for this file. Teams using Claude Code, Codex, or multi-agent workflows may commit `AGENTS.md` but not `CLAUDE.md`. Missing this signal systematically undercounts AI-native teams using non-Claude tooling. Real-world example: Ken Judy's `kenjudy/pdca-code-generation-process` repo uses `AGENTS.md` for agent instructions without a `CLAUDE.md`.
+
+**Acceptance Criteria:**
+- `AIConfigDetector` detects `AGENTS.md` at repo root as a declared AI config signal
+- Signal weight equal to `CLAUDE.md` (same semantic meaning, different tool convention)
+- Documented in `METHODOLOGY.md` with rationale
+- Validated: repos with `AGENTS.md` score correctly; repos without don't regress
+- All existing tests pass; new tests cover `AGENTS.md` detection
+
+**Effort:** 1-2 hours
+
+**Attribution:** Signal pattern identified from `kenjudy/pdca-code-generation-process` (Ken Judy, CC BY 4.0). See: https://github.com/kenjudy/pdca-code-generation-process
+
+---
+
+### P1: Detect `.claudeignore` as Declared AI Signal
+**Feature:** Add `.claudeignore` (and analogous files like `.aiderignore`, `.copilotignore`) to `AIConfigDetector`
+
+**Why:** A team that has committed a `.claudeignore` file is deliberately scoping what AI tooling can see — this is a clear act of AI configuration. It's a stronger signal than a README mention because it requires intentional file creation and ongoing maintenance. Currently invisible to the scanner.
+
+**Acceptance Criteria:**
+- `AIConfigDetector` detects `.claudeignore` at repo root
+- Extend to analogous files for other tools (`.aiderignore`, `.copilotignore`) in same pass
+- Each file type documented in `METHODOLOGY.md` with rationale
+- All existing tests pass; new tests cover each file type
+
+**Effort:** 1-2 hours
+
+**Attribution:** Signal pattern identified from `kenjudy/pdca-code-generation-process` (Ken Judy, CC BY 4.0). See: https://github.com/kenjudy/pdca-code-generation-process
+
+---
+
+### P2: Detect Human-AI Collaboration Artifacts
+**Feature:** Detect committed human-AI working agreements and collaboration frameworks as a scored signal
+
+**Why:** A team that has committed a `Human Working Agreements.md`, `COLLABORATION.md`, or similarly named document defining how humans and AI work together has made a deliberate, visible organizational decision. This is a qualitatively different signal from tool configuration — it indicates cultural intentionality, not just tool adoption. It correlates with L2 AI-Native patterns.
+
+**Design principle:** Match by filename patterns (not content scanning), consistent with declared-signals-only approach.
+
+**Candidate file patterns:**
+- `Human Working Agreements.md` (Ken Judy's convention)
+- `COLLABORATION.md`
+- `AI_WORKING_AGREEMENT.md`
+- `human-ai-collaboration.md` (case-insensitive match)
+
+**Acceptance Criteria:**
+- New detector (`CollaborationArtifactDetector` or extension of `AIConfigDetector`) matches files by name pattern
+- Adds to AI Adoption dimension score (weight TBD — suggest 5-10 points, less than full config file)
+- Documented in `METHODOLOGY.md`
+- Does not false-positive on repos with unrelated files matching patterns
+- All existing tests pass; new detector has its own test class
+
+**Effort:** 2-4 hours
+
+**Attribution:** Signal pattern identified from `kenjudy/pdca-code-generation-process` (Ken Judy, CC BY 4.0). `Human Working Agreements.md` is a committed artifact in that repo defining the human-AI collaboration contract. See: https://github.com/kenjudy/pdca-code-generation-process
+
+---
+
+### P2: Detect Co-author Attribution to AI Agents
+**Feature:** Detect `Co-authored-by:` git trailer lines attributing authorship to AI tools as a declared commit-level signal
+
+**Why:** Some teams configure their AI tooling to add `Co-authored-by: claude <noreply@anthropic.com>` or similar trailers to commit messages. This is an explicit, machine-readable declaration that AI contributed to a commit. It's currently invisible to the scanner. Real-world example: `kenjudy/pdca-code-generation-process` uses a `claude` GitHub account as a co-author, surfacing in GitHub's contributor graph.
+
+**Candidate patterns (declared, not inferred):**
+- `Co-authored-by: claude` (any variant)
+- `Co-authored-by: copilot` (any variant)
+- `Co-authored-by: aider` (any variant)
+- `Co-authored-by: codeium` (any variant)
+- General pattern: co-author name contains known AI tool name (configurable list)
+
+**Design principle:** This is a declared signal — the team explicitly configured their tooling to add the trailer. Not behavioral inference.
+
+**Acceptance Criteria:**
+- `CommitPatternDetector` extended to detect AI co-author trailers in commit message body
+- Regex matches case-insensitively against a configurable list of known AI tool names
+- Each matched commit counts as AI-assisted (consistent with existing declared signal logic)
+- False positive rate validated against non-AI repos
+- Documented in `METHODOLOGY.md`
+- All existing tests pass; new tests cover co-author pattern detection
+
+**Effort:** 2-4 hours
+
+**Attribution:** Signal pattern identified from `kenjudy/pdca-code-generation-process` (Ken Judy, CC BY 4.0), where the `claude` GitHub account appears as a contributor via co-author commit attribution. See: https://github.com/kenjudy/pdca-code-generation-process
+
+---
+
+### P3: PDCA / Structured AI Workflow Detection
+**Feature:** Detect presence of PDCA-structured AI workflow artifacts (phase prompt files, skill files, structured session frameworks)
+
+**Why:** Teams that have committed structured AI workflow frameworks — PDCA phase prompts, Claude skill packages (`.skill` files), or similar scaffolding — have invested substantially in AI-native process design. This is a strong L2 indicator that goes beyond tool adoption into intentional workflow engineering. Currently invisible to the scanner.
+
+**Candidate signals:**
+- Presence of `claude-skill/` directory or `.skill` files
+- PDCA-structured prompt directories (`1. Plan/`, `2. Do/`, `3. Check/`, `4. Act/`)
+- `.claude/prompts/` directory with phase files
+- Presence of a `claude-skill/` build system
+
+**Design principle:** File/directory presence only — no content scanning. Declared structure, not behavioral inference.
+
+**Acceptance Criteria:**
+- New detector matches known AI workflow scaffold patterns by directory/file name
+- Adds to AI Adoption dimension score (weight TBD — suggest treating as equivalent to AI config file)
+- Documented in `METHODOLOGY.md` with rationale for each pattern
+- Does not false-positive on repos with unrelated directory structures
+- All existing tests pass
+
+**Effort:** 2-4 hours
+
+**Attribution:** Signal pattern identified from `kenjudy/pdca-code-generation-process` (Ken Judy, CC BY 4.0), which packages a full PDCA framework as a Claude skill with phase prompt files, build system, and installable `.skill` artifact. See: https://github.com/kenjudy/pdca-code-generation-process
+
+---
+
+### P3: CLAUDE.md / AGENTS.md as Skill Distribution Mechanism (Scanner Skill)
+**Feature:** Package the Aints scanner's own `CLAUDE.md` as a reusable Claude skill (inspired by Ken Judy's PDCA skill packaging approach)
+
+**Why:** Ken's repo demonstrates a pattern of packaging AI workflow guidance as an installable Claude skill. The Aints `CLAUDE.md` already functions as a working agreement with Claude. Packaging it as a distributable skill would make it easier for contributors, forks, and external adopters to onboard consistently — and would itself be a strong declared AI signal in any repo that adopts it.
+
+**This is a meta-feature:** Aints becomes a better example of AI-native development by adopting the patterns it measures.
+
+**Acceptance Criteria:**
+- `CLAUDE.md` content reviewed and structured for skill format
+- Build script produces installable skill artifact
+- Installation instructions added to `README.md`
+- Scanner's own `AIConfigDetector` detects the installed skill artifact
+
+**Effort:** 4-8 hours
+
+**Attribution:** Skill packaging approach inspired by `kenjudy/pdca-code-generation-process` (Ken Judy, CC BY 4.0). See: https://github.com/kenjudy/pdca-code-generation-process
 
 ---
 
@@ -427,5 +700,11 @@ These were not in the original backlog but were identified and fixed during real
 
 ---
 
-*Last Updated: March 14, 2026*
+**External research incorporated:**
+- Ken Judy, `kenjudy/pdca-code-generation-process` (CC BY 4.0) — AI config signal patterns, co-author attribution, collaboration artifacts, skill packaging
+- Ken Judy, `stride-nyc/code-quality-metrics` (CC BY 4.0) — AI code drift metrics, commit size/sprawl signals, squash-merge signal loss
+
+---
+
+*Last Updated: March 24, 2026*
 *Current Focus: Phase 2, Sprint 1*
