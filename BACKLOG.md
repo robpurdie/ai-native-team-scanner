@@ -651,19 +651,51 @@
 
 ---
 
-## Current Sprint (Next 1-2 Weeks)
+## Current Sprint Status — March 24, 2026
 
-**Focus:** Phase 2 — Enable Organizational Comparison
+### ✅ Completed This Session (March 24, 2026)
 
-**Committed:**
-1. Commit message + diff size correlation (P0) — fixes systematic AI adoption undercount
-2. Git Trees API optimisation (P0) — prerequisite for batch scanning
-3. Batch Scanning Mode (P0)
-4. Comparative Analysis Engine (P0)
-5. Comparative Report Generator (P0)
+**Declared AI Signal Detection — fully delivered:**
+- `CoAuthorDetector` — new class parsing git trailers for AI agent co-author signatures
+  - Detects: `copilot`, `aider`, `cursor`, `claude_code` (known tools only — no inference)
+  - Pattern order: copilot → aider → cursor → claude (specific before broad)
+  - Validated: `kenjudy/pdca-code-generation-process` (57/72 claude_code trailers)
+  - Validated: `Aider-AI/aider` (21/27 AI commits via trailers: 20 aider, 1 claude_code)
+- `CommitPatternDetector` stripped to declared signals only
+  - Removed all behavioral inference patterns (verbose language, bullets, connectors, etc.)
+  - Single pattern remaining: explicit AI tool name in commit subject line
+- `AGENTS.md` added to `AIConfigDetector` — cross-tool standard (Codex, Jules, Claude Code)
+  - Validated: detected in `kenjudy/pdca-code-generation-process`
+- `.claudeignore`, `.aiderignore`, `.copilotignore` added to `AIConfigDetector`
+- Co-author fields (`co_author_ai_commit_count`, `co_author_tool_counts`) surfaced in JSON output
+- CI pip-audit fixed for CVE-2026-4539 (pygments DoS, no patch available, local-only)
+- All tests green (164 passing, 92% coverage), CI green on dev
 
-**Also queued (from Phase 1 work):**
-- Enhanced CLI Output (P1) — composite scores + gap analysis in console
+---
+
+## Next Sprint — Phase 2, Sprint 2
+
+**Focus:** Performance + Batch Scanning
+
+### P0: Git Trees API — Batch Performance Optimization ← START HERE
+**Why now:** Current `_walk_repository` makes one API call per directory. A single large repo
+can consume 50-200 API calls just for file counting. Batch scanning 100+ repos will hit
+GitHub's 5,000/hour rate limit immediately without this fix.
+
+**What:** Replace recursive traversal with single `repo.get_git_tree(sha, recursive=True)` call.
+**Effort:** 2-4 hours
+
+### P0: Batch Scanning Mode
+**What:** `--batch repos.txt` CLI flag, one repo per line, single comparative JSON output.
+**Effort:** 4-6 hours
+
+### P0: Comparative Analysis Engine
+**What:** Percentiles, rankings, top performers across batch results.
+**Effort:** 6-8 hours
+
+### P0: Comparative Report Generator
+**What:** Org-wide dashboard report from batch scan results.
+**Effort:** 1-2 days
 
 **Success Metric:** Scan 50+ repos in a single run, generate org-wide dashboard report
 
@@ -708,3 +740,4 @@ These were not in the original backlog but were identified and fixed during real
 
 *Last Updated: March 24, 2026*
 *Current Focus: Phase 2, Sprint 2 — Git Trees API + Batch Scanning*
+*Next session: start with Git Trees API P0*
