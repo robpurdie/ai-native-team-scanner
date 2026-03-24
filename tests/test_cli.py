@@ -12,6 +12,8 @@ from scanner.models import DimensionScore, ObservationWindow, TeamMaturityScore
 
 def create_mock_score(repo_name="owner/repo", level=0):
     """Helper to create a mock TeamMaturityScore."""
+    from scanner.models import AIAdoptionSignals
+
     window = ObservationWindow(start_date=datetime(2025, 12, 6), end_date=datetime(2026, 3, 6))
 
     ai_score = DimensionScore(
@@ -30,6 +32,12 @@ def create_mock_score(repo_name="owner/repo", level=0):
         details=f"Level {level}",
     )
 
+    ai_signals = AIAdoptionSignals(
+        config_file_present=False,
+        co_author_ai_commit_count=3,
+        co_author_tool_counts={"copilot": 3},
+    )
+
     return TeamMaturityScore(
         repository=repo_name,
         observation_window=window,
@@ -37,6 +45,7 @@ def create_mock_score(repo_name="owner/repo", level=0):
         ai_adoption_score=ai_score,
         engineering_score=eng_score,
         overall_level=level,
+        ai_signals=ai_signals,
     )
 
 
@@ -154,6 +163,8 @@ class TestCLIMain:
         assert result["overall_level"] == 1
         assert "ai_adoption" in result
         assert "engineering_practices" in result
+        assert result["ai_adoption"]["co_author_ai_commit_count"] == 3
+        assert result["ai_adoption"]["co_author_tool_counts"] == {"copilot": 3}
 
     @patch("scanner.cli.load_dotenv")
     @patch("scanner.cli.os.getenv")

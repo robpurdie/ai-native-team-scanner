@@ -48,6 +48,12 @@ def format_score_output(score: Any) -> dict:
                 for name, sig in score.ai_adoption_score.signals.items()
             },
             "thresholds_met": score.ai_adoption_score.threshold_met,
+            "co_author_ai_commit_count": (
+                score.ai_signals.co_author_ai_commit_count if score.ai_signals else 0
+            ),
+            "co_author_tool_counts": (
+                score.ai_signals.co_author_tool_counts if score.ai_signals else {}
+            ),
         },
         "engineering_practices": {
             "level": score.engineering_score.level,
