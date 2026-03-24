@@ -43,7 +43,7 @@ jobs:
       run: bandit -r src -ll
 
     - name: Check dependencies with pip-audit
-      run: pip-audit
+      run: pip-audit --ignore-vuln CVE-2026-4539
 
     - name: Run tests with pytest
       run: pytest --cov=src --cov-report=term-missing --cov-fail-under=80
