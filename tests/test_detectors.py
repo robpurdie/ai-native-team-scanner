@@ -130,6 +130,73 @@ class TestAIConfigDetector:
         assert detected is True
         assert ".github/copilot-instructions.md" in path
 
+    def test_detects_agents_md(self):
+        """Test detection of AGENTS.md — cross-tool AI agent instructions standard."""
+        from unittest.mock import Mock
+
+        repo = Mock()
+        file1 = Mock()
+        file1.path = "AGENTS.md"
+        file1.type = "file"
+        file2 = Mock()
+        file2.path = "README.md"
+        file2.type = "file"
+
+        repo.get_contents.return_value = [file1, file2]
+
+        detected, path = AIConfigDetector.detect(repo)
+
+        assert detected is True
+        assert path == "AGENTS.md"
+
+    def test_detects_claudeignore(self):
+        """Test detection of .claudeignore as declared AI scoping config."""
+        from unittest.mock import Mock
+
+        repo = Mock()
+        file1 = Mock()
+        file1.path = ".claudeignore"
+        file1.type = "file"
+
+        repo.get_contents.return_value = [file1]
+
+        detected, path = AIConfigDetector.detect(repo)
+
+        assert detected is True
+        assert path == ".claudeignore"
+
+    def test_detects_aiderignore(self):
+        """Test detection of .aiderignore as declared AI scoping config."""
+        from unittest.mock import Mock
+
+        repo = Mock()
+        file1 = Mock()
+        file1.path = ".aiderignore"
+        file1.type = "file"
+
+        repo.get_contents.return_value = [file1]
+
+        detected, path = AIConfigDetector.detect(repo)
+
+        assert detected is True
+        assert path == ".aiderignore"
+
+    def test_detects_copilotignore(self):
+        """Test detection of .copilotignore as declared AI scoping config."""
+        from unittest.mock import Mock
+
+        repo = Mock()
+        file1 = Mock()
+        file1.path = ".copilotignore"
+        file1.type = "file"
+
+        repo.get_contents.return_value = [file1]
+
+        detected, path = AIConfigDetector.detect(repo)
+
+        assert detected is True
+        assert path == ".copilotignore"
+
     def test_no_config_file(self):
         """Test when no AI config file is present."""
         from unittest.mock import Mock

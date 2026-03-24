@@ -16,17 +16,21 @@ class AIConfigDetector:
         "CLAUDE.md",
         ".claude.json",
         "claude_config.json",
+        ".claudeignore",
         # Cursor
         ".cursorrules",
         # GitHub Copilot
         ".github/copilot-instructions.md",
         ".github/copilot-instructions.txt",
+        ".copilotignore",
         # Aider
         ".aider.conf.yml",
+        ".aiderignore",
         # Continue
         ".continue/config.json",
-        # Generic
+        # Generic / cross-tool
         ".ai/config.json",
+        "AGENTS.md",  # Cross-tool standard: OpenAI Codex, Google Jules, Claude Code
     }
 
     @classmethod
