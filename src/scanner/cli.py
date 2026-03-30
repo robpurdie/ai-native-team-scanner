@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from scanner.analyzer import CommitAnalyzer
 from scanner.batch import BatchScanner
 from scanner.github_client import GitHubClient
-from scanner.reporter import ReportGenerator
+from scanner.reporter import BatchReportGenerator, ReportGenerator
 from scanner.scoring import TeamScorer
 
 
@@ -164,6 +164,11 @@ def main() -> None:
     parser.add_argument(
         "--report", "-r", help="Generate markdown report at this path", default=None
     )
+    parser.add_argument(
+        "--label",
+        help="Cohort label for batch reports (e.g. 'Platform Engineering -- Q1 2026')",
+        default=None,
+    )
 
     args = parser.parse_args()
 
@@ -190,7 +195,7 @@ def main() -> None:
     client = GitHubClient(token=token)
     window = CommitAnalyzer.create_90day_window()
 
-    # ── Batch mode ──────────────────────────────────────────────────────────
+    # -- Batch mode ----------------------------------------------------------
     if args.batch:
         try:
             repo_names = BatchScanner.parse_repo_file(args.batch)
@@ -212,7 +217,7 @@ def main() -> None:
         result = scanner.scan_repos(repo_names, window, progress_callback=progress)
 
         print(
-            f"Scan complete: {result.repos_succeeded} succeeded, " f"{result.repos_failed} failed",
+            f"Scan complete: {result.repos_succeeded} succeeded, {result.repos_failed} failed",
             file=sys.stderr,
         )
 
@@ -220,7 +225,11 @@ def main() -> None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
             json.dump(format_batch_output(result), f, indent=2)
-        print(f"✓ Results saved to: {args.output}")
+        print(f"Results saved to: {args.output}")
+
+        if args.report:
+            BatchReportGenerator().save(result, args.report, label=args.label)
+            print(f"Report saved to: {args.report}")
 
         if result.repos_failed > 0:
             print("\nFailed repos:", file=sys.stderr)
@@ -229,15 +238,15 @@ def main() -> None:
 
         sys.exit(0)
 
-    # ── Single-repo mode ─────────────────────────────────────────────────────
+    # -- Single-repo mode ----------------------------------------------------
     scorer = TeamScorer()
 
     try:
         print(f"Scanning repository: {args.repo}")
         repo = client._github.get_repo(args.repo)
-        print(f"✓ Found repository: {repo.full_name}")
-        print(f"✓ Analyzing window: {window.start_date.date()} to {window.end_date.date()}")
-        print("✓ Analyzing commits and signals...")
+        print(f"Found repository: {repo.full_name}")
+        print(f"Analyzing window: {window.start_date.date()} to {window.end_date.date()}")
+        print("Analyzing commits and signals...")
         score = scorer.score_repository(repo, window)
 
         if args.verbose or not args.output:
@@ -248,11 +257,11 @@ def main() -> None:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, "w") as f:
                 json.dump(format_score_output(score), f, indent=2)
-            print(f"✓ Results saved to: {args.output}")
+            print(f"Results saved to: {args.output}")
 
         if args.report:
             ReportGenerator().save(score, args.report)
-            print(f"✓ Report saved to: {args.report}")
+            print(f"Report saved to: {args.report}")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

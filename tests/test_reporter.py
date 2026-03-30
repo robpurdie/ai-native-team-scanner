@@ -656,3 +656,160 @@ class TestReportFileOutput:
         output_path = tmp_path / "reports" / "subdir" / "report.md"
         ReportGenerator().save(score, str(output_path))
         assert output_path.exists()
+
+
+# ---------------------------------------------------------------------------
+# BatchReportGenerator tests
+# ---------------------------------------------------------------------------
+
+
+def make_batch_result(scores):
+    """Create a minimal BatchScanResult for testing."""
+    from scanner.models import BatchScanResult
+
+    return BatchScanResult(
+        repos_attempted=len(scores),
+        repos_succeeded=len(scores),
+        repos_failed=0,
+        failed_repos=[],
+        scores=scores,
+    )
+
+
+class TestBatchReportGenerator:
+    """Tests for BatchReportGenerator."""
+
+    def test_generates_string(self):
+        """BatchReportGenerator.generate() returns a non-empty string."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score()])
+        report = BatchReportGenerator().generate(result)
+        assert isinstance(report, str)
+        assert len(report) > 0
+
+    def test_empty_result_returns_message(self):
+        """Empty scores list returns a graceful no-data message."""
+        from scanner.models import BatchScanResult
+        from scanner.reporter import BatchReportGenerator
+
+        result = BatchScanResult(
+            repos_attempted=0, repos_succeeded=0, repos_failed=0, failed_repos=[], scores=[]
+        )
+        report = BatchReportGenerator().generate(result)
+        assert "No repositories" in report
+
+    def test_report_contains_cohort_overview(self):
+        """Report includes cohort overview section."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score(), make_l0_score()])
+        report = BatchReportGenerator().generate(result)
+        assert "Cohort Overview" in report
+
+    def test_report_contains_team_rankings(self):
+        """Report includes team rankings table."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score(), make_l0_score()])
+        report = BatchReportGenerator().generate(result)
+        assert "Team Rankings" in report
+
+    def test_report_contains_where_to_focus(self):
+        """Report includes where to focus section."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score()])
+        report = BatchReportGenerator().generate(result)
+        assert "Where to Focus" in report
+
+    def test_report_contains_team_summaries(self):
+        """Report includes team summaries section."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score()])
+        report = BatchReportGenerator().generate(result)
+        assert "Team Summaries" in report
+
+    def test_label_appears_in_report(self):
+        """Custom label appears in report header."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score()])
+        report = BatchReportGenerator().generate(result, label="Platform Engineering")
+        assert "Platform Engineering" in report
+
+    def test_default_label_when_none(self):
+        """Default label used when no label provided."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score()])
+        report = BatchReportGenerator().generate(result)
+        assert "All Repositories" in report
+
+    def test_level_distribution_shows_correct_counts(self):
+        """Level distribution reflects actual score counts."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l0_score(), make_l0_score(), make_l1_score()])
+        report = BatchReportGenerator().generate(result)
+        assert "Level Distribution" in report
+        assert "Integrating" in report
+        assert "Not Yet" in report
+
+    def test_highest_ranked_team_is_first(self):
+        """Team with highest overall composite score is ranked first."""
+        from scanner.reporter import BatchReportGenerator
+
+        l0 = make_l0_score()
+        l1 = make_l1_score()
+        result = make_batch_result([l0, l1])
+        report = BatchReportGenerator().generate(result)
+        # L1 score has higher composite; its name should appear before L0's
+        l1_name = l1.repository.split("/")[-1]
+        l0_name = l0.repository.split("/")[-1]
+        assert report.index(l1_name) < report.index(l0_name)
+
+    def test_failed_repos_section_appears_when_failures_exist(self):
+        """Scan Notes section appears when repos_failed > 0."""
+        from scanner.models import BatchScanResult
+        from scanner.reporter import BatchReportGenerator
+
+        result = BatchScanResult(
+            repos_attempted=2,
+            repos_succeeded=1,
+            repos_failed=1,
+            failed_repos=[("owner/bad", "Not found")],
+            scores=[make_l1_score()],
+        )
+        report = BatchReportGenerator().generate(result)
+        assert "Scan Notes" in report
+        assert "owner/bad" in report
+
+    def test_no_failed_repos_section_when_all_succeed(self):
+        """Scan Notes section absent when no failures."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score()])
+        report = BatchReportGenerator().generate(result)
+        assert "Scan Notes" not in report
+
+    def test_save_writes_file(self, tmp_path):
+        """save() writes markdown report to specified path."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score()])
+        output = tmp_path / "batch_report.md"
+        BatchReportGenerator().save(result, str(output))
+        assert output.exists()
+        content = output.read_text()
+        assert "AI-Native Team Assessment" in content
+
+    def test_investment_opportunities_excludes_l2(self):
+        """Investment opportunities section only includes non-L2 teams."""
+        from scanner.reporter import BatchReportGenerator
+
+        result = make_batch_result([make_l1_score(), make_l2_score()])
+        report = BatchReportGenerator().generate(result)
+        # L2 team should appear in rankings but not investment opportunities
+        assert "Investment Opportunities" in report

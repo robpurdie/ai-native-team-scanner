@@ -3,7 +3,7 @@
 
 ## Repository Information
 - **GitHub Repo**: https://github.com/robpurdie/ai-native-team-scanner
-- **Current Version**: v3.1.0 (released March 24, 2026)
+- **Current Version**: v3.2.1 (dev branch)
 - **Branch Strategy**: `main` = stable releases, `dev` = active development
 - **Local Path**: ~/Apps/Aints
 
@@ -12,13 +12,22 @@
 **ROADMAP.md** - Strategic vision with 4 phases mapped to quarters (Q2 2026 → 2027+)
 **BACKLOG.md** - Prioritized feature backlog with P0/P1/P2/P3 levels and effort estimates
 
-These documents provide the big picture view and guide tactical implementation decisions.
+---
 
 ## Current Status (March 30, 2026)
 
 ### ✅ Phase 1 Complete — Results Are Actionable
 ### ✅ Phase 2 Sprint 1 Complete — Declared AI Signal Detection
-### ✅ Phase 2 Sprint 2, Item 1 Complete — Git Trees API Optimization
+### ✅ Phase 2 Sprint 2 (in progress) — Performance + Batch Scanning
+
+**Sprint 2 completed:**
+- v3.1.0 — Git Trees API optimization
+- v3.2.0 — Batch Scanning Mode
+- v3.2.1 — AIConfigDetector determinism fix
+
+**Sprint 2 remaining:**
+- Comparative Analysis Engine (next P0)
+- Comparative Report Generator
 
 ---
 
@@ -28,167 +37,178 @@ These documents provide the big picture view and guide tactical implementation d
 - Composite scoring (0-100) for ranking within levels
 - Gap analysis engine with concrete next steps
 - Markdown report generator (no LLM dependency)
-- CLI `--report` flag
-- Signal-aware roadmap suppression
-- `min_contributors: 2` → `min_commits: 10`
+- CLI `--report` flag, signal-aware roadmap suppression
+- `min_commits: 10` threshold (not `min_contributors: 2`)
 
 ### Phase 2 Sprint 1 (March 24, 2026)
 - **`CoAuthorDetector`** — git trailer parser, detects copilot/aider/cursor/claude_code
-- **`CommitPatternDetector`** — stripped to declared signals only (no behavioral inference)
-- **`AGENTS.md`** added to `AIConfigDetector` (cross-tool standard)
-- **`.claudeignore`, `.aiderignore`, `.copilotignore`** added to `AIConfigDetector`
-- `co_author_ai_commit_count` and `co_author_tool_counts` surfaced in JSON output
-- Validated against `kenjudy/pdca-code-generation-process` and `Aider-AI/aider`
+- **`CommitPatternDetector`** — declared signals only, no behavioral inference
+- **`AGENTS.md`**, **`.claudeignore`**, **`.aiderignore`**, **`.copilotignore`** added to `AIConfigDetector`
+- `co_author_ai_commit_count` and `co_author_tool_counts` in JSON output
 
 ### Phase 2 Sprint 2 (March 30, 2026)
-- **Git Trees API** — `_walk_repository_via_git_trees()` replaces recursive `get_contents()`
-  - Single `repo.get_git_tree(sha, recursive=True)` call per scan
-  - ~80-90% reduction in API calls for file detection
-  - Returns `Tuple[int, int]` (test_count, code_count) directly
-  - 9 new tests in `TestGitTreesFileDetection`
-  - Awaiting local pipeline run + commit to `dev`
+- **Git Trees API** (v3.1.0) — `_walk_repository_via_git_trees(repo) -> Tuple[int, int]`
+  - Single `repo.get_git_tree(sha, recursive=True)` call, ~80-90% API call reduction
+- **Batch Scanning** (v3.2.0) — `--batch repos.txt --output results/batch.json`
+  - `BatchScanner`, `BatchScanResult`, `format_batch_output()`
+  - Validated against 3 real repos: 3/3 succeeded
+- **AIConfigDetector determinism** (v3.2.1) — `AI_CONFIG_FILES` set → ordered list
+  - Bug found via real-world validation: vercel/ai returned different config file on different runs
+  - Priority: `CLAUDE.md` > `.cursorrules` > Copilot > Aider > `AGENTS.md`
 
 ---
 
 ## Current Test State
-- 164+ tests passing (March 24 baseline), +9 new Git Trees tests
-- 92% coverage (March 24 baseline)
-- All CI checks green on `dev` as of March 24
-- **Run pipeline before committing Git Trees changes:**
+- **196 tests passing, 95%+ coverage** (as of v3.2.1)
+- All CI checks green on `dev`
+- **Pipeline command:**
   ```bash
   black src/ tests/ && isort src/ tests/ && flake8 src/ tests/ && mypy src/ && pytest --cov=src --cov-report=term-missing --cov-fail-under=80
   ```
 
 ---
 
-## ⏭️ Current Focus: Batch Scanning Mode
+## ⏭️ Current Focus: Comparative Analysis Engine
 
-Git Trees API is implemented (pending local pipeline + commit). Next P0 is **Batch Scanning Mode**.
+New file: `src/scanner/comparative.py` with `ComparativeAnalyzer` class.
+Decoupled from `BatchScanner` — takes scores, produces analysis. Testable in isolation.
 
-### Design Decisions Made
+### What to Build
 
-**CLI interface:**
-```bash
-python -m scanner.cli --batch repos.txt --output results/batch.json
-```
-- `repos.txt`: one `owner/repo` per line, blank lines and `#` comments ignored
-- `--batch` is mutually exclusive with positional `repo` argument
-- `--output` required for batch mode (no stdout dump of 100 repos)
-- `--report` flag generates per-repo markdown reports alongside the batch JSON
-
-**Output format — two files:**
-1. `batch.json` — array of individual `TeamMaturityScore` JSON objects (same schema as single-repo)
-2. `batch_summary.json` — aggregate statistics (level distribution, medians, top performers)
-   - Derived from `batch.json`; generated automatically when `--output` is specified
-
-**Error handling:**
-- Failed repos logged to stderr with reason; scan continues
-- Repos with insufficient data (< 10 commits) included in output with `overall_level: 0` and `insufficient_data: true`
-- Rate limit hits: back off and retry (GitHub API: 5,000 req/hour)
-
-**Progress:**
-- Print one line per repo to stderr: `[12/50] Scanning owner/repo...`
-- Final line: `Scan complete: 48 succeeded, 2 failed`
-
-**Module location:** New file `src/scanner/batch.py` with `BatchScanner` class.
-Keeps `cli.py` thin — batch logic lives in its own module.
-
-### What to Build (TDD Order)
-
-**File: `src/scanner/batch.py`**
+**`ComparativeAnalyzer`** takes `List[TeamMaturityScore]` and produces `ComparativeAnalysis`.
 
 ```python
-class BatchScanner:
-    def __init__(self, github_client: Github, thresholds: Optional[ScoringThresholds] = None):
+class ComparativeAnalyzer:
+    def analyze(self, scores: List[TeamMaturityScore]) -> ComparativeAnalysis:
         ...
 
-    def scan_repos(
-        self,
-        repo_names: List[str],
-        window: ObservationWindow,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    ) -> BatchScanResult:
+    def _compute_percentiles(self, scores: List[TeamMaturityScore]) -> Dict[str, Dict[str, float]]:
+        # percentile rank for each repo on each dimension + overall composite
         ...
 
-    @staticmethod
-    def parse_repo_file(path: str) -> List[str]:
-        """Parse repos.txt — strips blanks and # comments."""
+    def _rank(self, scores: List[TeamMaturityScore]) -> List[RankedTeam]:
+        # 1-N ranking by overall composite (avg of both dimension composites)
+        ...
+
+    def _top_performers(self, scores: List[TeamMaturityScore], n: int = 5) -> TopPerformers:
+        # top N by AI adoption, engineering, overall, and "most balanced"
+        ...
+
+    def _investment_opportunities(self, scores: List[TeamMaturityScore]) -> List[str]:
+        # teams closest to next level (smallest gap to threshold)
         ...
 ```
 
-**`BatchScanResult` dataclass** (add to `models.py`):
+**New models** (add to `models.py`):
+
 ```python
 @dataclass
-class BatchScanResult:
-    repos_attempted: int
-    repos_succeeded: int
-    repos_failed: int
-    failed_repos: List[Tuple[str, str]]  # (repo_name, error_message)
-    scores: List[TeamMaturityScore]
-    scan_timestamp: datetime
+class RankedTeam:
+    repository: str
+    overall_rank: int          # 1 = best
+    ai_rank: int
+    engineering_rank: int
+    overall_composite: float   # average of both dimension composites
+    ai_composite: float
+    engineering_composite: float
+    overall_level: int
+    percentile_overall: float  # 0-100
+    percentile_ai: float
+    percentile_engineering: float
+
+@dataclass
+class TopPerformers:
+    by_ai_adoption: List[str]       # repo names, top N
+    by_engineering: List[str]
+    by_overall: List[str]
+    most_balanced: List[str]        # smallest gap between AI and engineering composite
+
+@dataclass
+class ComparativeAnalysis:
+    total_repos: int
+    level_distribution: Dict[int, int]   # {0: 12, 1: 8, 2: 2}
+    median_ai_composite: float
+    median_engineering_composite: float
+    median_overall_composite: float
+    ranked_teams: List[RankedTeam]
+    top_performers: TopPerformers
+    investment_opportunities: List[str]  # repos closest to next level
 ```
 
-**`cli.py` changes:**
-- Add `--batch` argument (mutually exclusive group with positional `repo`)
-- Wire `BatchScanner` when `--batch` is present
-- Progress callback prints to stderr
+### Key Design Decisions
 
-### Tests to Write First (TDD)
+**Overall composite** = average of `ai_adoption_score.composite_score` and
+`engineering_score.composite_score`. Not a new scoring formula — reuses existing
+composites. Simple, auditable, consistent with the lower-of-two-dimensions principle
+(a team with 90 AI / 10 Engineering has an overall composite of 50, not 90).
 
-**`tests/test_batch.py`** — new file:
+**Percentile rank**: for a given metric, what % of repos scored at or below this repo.
+Standard percentile_rank formula: `(repos_at_or_below - 1) / (total - 1) * 100`.
+Handle edge cases: single repo → 100th percentile; tied scores share the same percentile.
+
+**Top performers**: top 5 by default (configurable). "Most balanced" = smallest absolute
+difference between `ai_composite` and `engineering_composite` — these are teams where
+both dimensions are developing together rather than one leading.
+
+**Investment opportunities**: teams where `overall_level < 2` and gap to next level
+is smallest. Proxy: for L0 teams, how close are they to L1 thresholds? For L1 teams,
+how close to L2? Use existing `gap_analysis.team_gaps()` to compute — reuse, don't duplicate.
+
+**Repos with insufficient data** (`overall_level == 0`, `total_commits < min_commits`):
+included in level distribution count but excluded from percentile/ranking calculations
+(no meaningful composite to rank on). Flag them in output.
+
+### Tests to Write First (`tests/test_comparative.py`)
 
 ```
-parse_repo_file:
-- Strips blank lines
-- Strips # comment lines
-- Strips inline comments (owner/repo  # comment)
-- Returns clean list of owner/repo strings
-- Empty file returns empty list
+ComparativeAnalyzer.analyze():
+- Single repo → ranked_teams has 1 entry, percentile = 100
+- Two repos → higher composite gets rank 1
+- Three repos with ties → tied repos share percentile
+- level_distribution counts correctly across L0/L1/L2
+- median_ai_composite correct for odd and even counts
+- top_performers.by_overall returns correct repo names in order
+- most_balanced returns repo with smallest AI/engineering gap
+- investment_opportunities returns L0/L1 repos, not L2
+- empty list → raises ValueError or returns zeroed result (decide and test)
 
-scan_repos:
-- Single repo → result contains one TeamMaturityScore
-- Failed repo → repos_failed incremented, repos_succeeded not
-- Mixed (one success, one failure) → both counted correctly
-- progress_callback called for each repo with (current, total, repo_name)
-- Rate limit exception → retried or recorded as failure (not crash)
+RankedTeam:
+- overall_composite = average of both dimension composites
+- percentile_overall correct relative to peers
 ```
 
-**`tests/test_cli.py`** additions:
-```
-- --batch flag present with valid file → calls BatchScanner
-- --batch and positional repo both present → argparse error
-- --batch without --output → error message
-```
-
-### Commit Sequence (after pipeline passes)
-1. Commit Git Trees API changes to `dev`
-2. Implement and commit Batch Scanning (TDD)
-3. Both on `dev`; merge to `main` when batch scanning is validated against real repos
+### Commit Sequence
+1. Add models (`RankedTeam`, `TopPerformers`, `ComparativeAnalysis`) to `models.py`
+2. Write `tests/test_comparative.py` (TDD)
+3. Implement `src/scanner/comparative.py`
+4. Pipeline passes → commit to `dev`
 
 ---
 
 ## Key Design Decisions
 
 ### Declared Signals Only
-- Undercounting is a known, documentable limitation
-- Overcounting based on inference produces silent errors that erode trust
-- `CoAuthorDetector`: declared git trailers only; `CommitPatternDetector`: explicit tool names only
+- `CoAuthorDetector`: git trailers only. `CommitPatternDetector`: explicit tool names only.
+- Undercounting is documentable. Overcounting based on inference erodes trust silently.
 
 ### Human-AI Teams
-- `min_commits: 10` (not `min_contributors: 2`) — human-AI pairs are legitimate team units
+- `min_commits: 10` — human-AI pairs are legitimate team units.
 
-### AI Config Files as Soft Constraints
-- Evidence of intentionality, not enforcement
-- Engineering practices dimension provides the enforcement layer (hooks, CI, tests)
+### AI Config File Priority (ordered list, not set)
+- `CLAUDE.md` > `.cursorrules` > Copilot instructions > Aider > `AGENTS.md`
+- Deterministic across runs. Discovered as bug via real-world validation.
 
 ### Scoring vs. Recognition Signals
-- **Scoring**: automatic, machine-generated declarations (co-author trailers, config files)
-- **Recognition**: human intentionality (manual AI attribution) — celebrated in reports, not scored
+- **Scoring**: machine-generated declarations (co-author trailers, config files)
+- **Recognition**: human intentionality (manual AI attribution) — celebrated, not scored
 
-### Git Trees API Performance Principle
-- One API call per repo for file detection, regardless of depth
-- Prerequisite for batch scanning at org scale (5,000 req/hour rate limit)
-- `get_git_tree(sha, recursive=True)` → flat list of all blobs and trees
+### Git Trees API
+- One API call per repo for file detection, regardless of depth.
+- `get_git_tree(sha, recursive=True)` → flat list of blobs and trees.
+
+### Comparative Analysis Design
+- Overall composite = avg(ai_composite, engineering_composite). Auditable, reuses existing scores.
+- Repos with insufficient data excluded from ranking but counted in level distribution.
 
 ---
 
@@ -198,26 +218,16 @@ scan_repos:
 ai-native-team-scanner/
 ├── src/scanner/
 │   ├── __init__.py
-│   ├── cli.py              # ✅ CLI with --output, --verbose, --report flags
+│   ├── cli.py              # ✅ --batch mode + single-repo mode
 │   ├── github_client.py    # ✅ GitHub API wrapper with rate limiting
-│   ├── models.py           # ✅ Data models (TeamMaturityScore, DimensionScore, etc.)
+│   ├── models.py           # ✅ Data models
 │   ├── analyzer.py         # ✅ Commit analysis (90-day window)
-│   ├── detectors.py        # ✅ Signal detection (AI, tests, CI/CD, docs)
-│   ├── scoring.py          # ✅ Two-dimensional maturity scoring + composite scores
-│   ├── gap_analysis.py     # ✅ Gap analysis engine (Phase 1)
-│   └── reporter.py         # ✅ Markdown report generator (Phase 1)
-├── tests/                  # 164+ tests, 92%+ coverage
-├── CLAUDE.md               # ✅ Working agreement with AI tools
-├── VISION.md
-├── MATURITY_MODEL.md
-├── METHODOLOGY.md
-├── ARCHITECTURE.md
-├── ROADMAP.md
-├── BACKLOG.md
-├── DEVELOPMENT.md
-├── QUICKSTART.md
-├── CHANGELOG.md
-└── README.md
+│   ├── detectors.py        # ✅ Signal detection (ordered AI_CONFIG_FILES)
+│   ├── scoring.py          # ✅ Git Trees API file detection
+│   ├── batch.py            # ✅ BatchScanner, BatchScanResult
+│   ├── gap_analysis.py     # ✅ Gap analysis engine
+│   └── reporter.py         # ✅ Markdown report generator
+├── tests/                  # 196 tests, 95%+ coverage
 ```
 
 ---
@@ -226,82 +236,42 @@ ai-native-team-scanner/
 
 ### Maturity Model
 - **Levels**: L0 (Not Yet), L1 (Integrating), L2 (AI-Native)
-- **Two Dimensions**: AI Adoption + Engineering Practices
-- **Overall Level**: Minimum of the two dimensions
-- **Normalization**: All metrics normalized by active contributors
-- **Observation Window**: 90 days (rolling)
-- **Minimum Signal**: 10 commits in window
+- **Overall Level**: min(AI level, Engineering level)
+- **Observation Window**: 90 days rolling, minimum 10 commits
 
 ### AI Adoption Thresholds
 - **L1**: Config file OR 20%+ AI-assisted commits
 - **L2**: 60%+ AI-assisted commits AND 80%+ contributor coverage
 
 ### Engineering Practice Thresholds
-- **L1**: 15%+ test file ratio, 30%+ conventional commits, CI/CD present, README present
-- **L2**: 25%+ test file ratio, 70%+ conventional commits, CI/CD present, README present
+- **L1**: 15%+ test ratio, 30%+ conventional commits, CI/CD, README
+- **L2**: 25%+ test ratio, 70%+ conventional commits, CI/CD, README
 
 ### Composite Score Formulas
-- **AI Adoption**: `(ai_commit_rate × 60) + (contributor_coverage × 30) + (config_file × 10)`
+- **AI**: `(ai_commit_rate × 60) + (contributor_coverage × 30) + (config_file × 10)`
 - **Engineering**: `(test_ratio × 30) + (conventional_rate × 40) + (ci_cd × 20) + (readme × 10)`
-
-### AI Config Files Detected
-- `CLAUDE.md`, `.claude.json`, `claude_config.json`, `.claudeignore` (Claude/Anthropic)
-- `.cursorrules` (Cursor)
-- `.github/copilot-instructions.md`, `.copilotignore` (GitHub Copilot)
-- `.aider.conf.yml`, `.aiderignore` (Aider)
-- `.continue/config.json` (Continue)
-- `.ai/config.json` (generic)
-- `AGENTS.md` (cross-tool standard: OpenAI Codex, Google Jules, Claude Code)
 
 ---
 
 ## Development Workflow
 
-**Branch Strategy:**
-- `main` - Stable releases only
-- `dev` - Active development, all new work happens here
-
-**Pre-Commit Quality Gates:**
-- black, isort, flake8 (100-char), mypy, bandit, detect-secrets
-- **conventional-pre-commit** (commit-msg stage) — enforces conventional commit format
-- Run `pre-commit install --hook-type commit-msg` on new clones
-
-**Full local workflow before committing:**
 ```bash
+# Full pipeline before any commit
 black src/ tests/ && isort src/ tests/ && flake8 src/ tests/ && mypy src/ && pytest --cov=src --cov-report=term-missing --cov-fail-under=80
+
+# Usage
+python3 -m scanner.cli owner/repo --output results/scan.json --verbose
+python3 -m scanner.cli --batch repos.txt --output results/batch.json
 ```
 
-## Usage
-
-```bash
-# Single repo scan
-python -m scanner.cli owner/repo --output results/scan.json
-
-# With markdown report
-python -m scanner.cli owner/repo --output results/scan.json --report results/report.md
-
-# Verbose
-python -m scanner.cli owner/repo --output results/scan.json --verbose
-
-# Batch scan (coming next)
-python -m scanner.cli --batch repos.txt --output results/batch.json
-```
+**Rules:**
+- TDD: tests first, then implementation
+- Never commit without local pipeline passing
+- Never lower coverage thresholds
+- Conventional commits enforced by pre-commit hook
+- No org-specific names in public docs
 
 ---
 
-## Important Notes
-
-- **No organization-specific names** in public GitHub documentation
-- **High verifier audience** — methodology must be precise and defensible
-- **TDD required** — tests first, then implementation, then pipeline
-- **Never lower coverage thresholds** — write proper tests instead
-- **Never commit without local tests passing** — strict discipline
-- **Done means working software** — not design artifacts or documentation
-- **Conventional commits required** — enforced by pre-commit hook
-
----
-
-**For Claude**: Read this file at session start. Current state:
-1. Git Trees API implementation done in `src/scanner/scoring.py` — awaiting local pipeline + commit
-2. Batch Scanning is the next P0 — full design spec above under "Current Focus"
-3. Start next session by checking if Git Trees commit happened, then proceed to `tests/test_batch.py`
+**For Claude**: Read this file at session start. Next task is Comparative Analysis Engine.
+Start with new models in `models.py`, then `tests/test_comparative.py`, then `src/scanner/comparative.py`.

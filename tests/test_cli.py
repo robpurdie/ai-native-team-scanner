@@ -113,7 +113,7 @@ class TestCLIMain:
 
         captured = capsys.readouterr()
         assert "Scanning repository: owner/repo" in captured.out
-        assert "✓ Found repository: owner/repo" in captured.out
+        assert "Found repository: owner/repo" in captured.out
         assert "AI-NATIVE TEAM ASSESSMENT" in captured.out
 
     @patch("scanner.cli.load_dotenv")

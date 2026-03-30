@@ -5,10 +5,10 @@ Template-based approach — no external LLM dependency.
 """
 
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Optional, Tuple
 
 from scanner.gap_analysis import GapAnalyzer
-from scanner.models import TeamMaturityScore
+from scanner.models import BatchScanResult, TeamMaturityScore
 
 # ---------------------------------------------------------------------------
 # Level metadata
@@ -570,4 +570,463 @@ class ReportGenerator:
                 f"| README | {readme_str} |",
             ]
 
+        return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Batch Report Generator
+# ---------------------------------------------------------------------------
+
+
+class BatchReportGenerator:
+    """Generate a multi-team markdown report from a BatchScanResult.
+
+    Designed for multiple reader levels:
+    - Page 1 (Cohort Overview): domain/family leaders read this and stop
+    - Page 2 (Where to Focus): coaching team reads this
+    - Page 3+ (Team Summaries): each team reads their own section
+    """
+
+    def __init__(self) -> None:
+        self._analyzer = GapAnalyzer()
+
+    def generate(self, result: BatchScanResult, label: Optional[str] = None) -> str:
+        """Generate a full batch markdown report.
+
+        Args:
+            result: BatchScanResult from a batch scan run
+            label: Optional cohort label (e.g. 'Platform Engineering — Q1 2026')
+
+        Returns:
+            Markdown string
+        """
+        scores = result.scores
+        if not scores:
+            return "# AI-Native Team Assessment\n\nNo repositories were successfully scanned."
+
+        ranked = self._rank_scores(scores)
+
+        sections = [
+            self._header(result, label),
+            self._cohort_overview(scores, ranked),
+            self._where_to_focus(scores, ranked),
+            self._team_summaries(ranked),
+        ]
+
+        if result.repos_failed > 0:
+            sections.append(self._failed_repos(result))
+
+        return "\n\n---\n\n".join(sections)
+
+    def save(self, result: BatchScanResult, path: str, label: Optional[str] = None) -> None:
+        """Write the batch markdown report to a file."""
+        output = Path(path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(self.generate(result, label), encoding="utf-8")
+
+    # -----------------------------------------------------------------------
+    # Helpers
+    # -----------------------------------------------------------------------
+
+    def _rank_scores(self, scores: List[TeamMaturityScore]) -> List[Tuple[int, TeamMaturityScore]]:
+        """Return (rank, score) pairs sorted best-first by overall composite."""
+
+        def _overall_composite(s: TeamMaturityScore) -> float:
+            return (s.ai_adoption_score.composite_score + s.engineering_score.composite_score) / 2
+
+        sorted_scores = sorted(scores, key=_overall_composite, reverse=True)
+        return [(rank + 1, s) for rank, s in enumerate(sorted_scores)]
+
+    def _overall_composite(self, s: TeamMaturityScore) -> float:
+        return (s.ai_adoption_score.composite_score + s.engineering_score.composite_score) / 2
+
+    def _short_name(self, repository: str) -> str:
+        """Return the repo part of owner/repo for compact display."""
+        return repository.split("/")[-1] if "/" in repository else repository
+
+    def _level_badge(self, level: int) -> str:
+        return {0: "🔴 L0", 1: "🟡 L1", 2: "🟢 L2"}[level]
+
+    def _level_label(self, level: int) -> str:
+        return {0: "Not Yet", 1: "Integrating", 2: "AI-Native"}[level]
+
+    def _bar(self, count: int, total: int, width: int = 20) -> str:
+        """Simple filled/empty bar for level distribution."""
+        filled = round(width * count / total) if total > 0 else 0
+        return "█" * filled + "░" * (width - filled)
+
+    def _limiting_dimension(self, score: TeamMaturityScore) -> str:
+        ai = score.ai_adoption_score.level
+        eng = score.engineering_score.level
+        if ai < eng:
+            return "AI Adoption"
+        if eng < ai:
+            return "Engineering Practices"
+        return "Both dimensions equally"
+
+    def _gap_distance(self, score: TeamMaturityScore) -> float:
+        """Proxy for distance to next level: higher = further away.
+
+        Uses 100 minus overall composite so teams close to next level
+        (high composite) get a low distance score.
+        """
+        if score.overall_level == 2:
+            return 0.0
+        return 100.0 - self._overall_composite(score)
+
+    # -----------------------------------------------------------------------
+    # Section builders
+    # -----------------------------------------------------------------------
+
+    def _header(self, result: BatchScanResult, label: Optional[str]) -> str:
+        cohort_label = label or "All Repositories"
+        scan_date = result.scan_timestamp.strftime("%Y-%m-%d")
+        n = result.repos_succeeded
+        repo_word = "repository" if n == 1 else "repositories"
+        return (
+            f"# AI-Native Team Assessment\n"
+            f"## {cohort_label}\n\n"
+            f"**Scanned:** {scan_date} · "
+            f"**{n} {repo_word}** · "
+            f"**90-day observation window**"
+        )
+
+    def _cohort_overview(
+        self, scores: List[TeamMaturityScore], ranked: List[Tuple[int, TeamMaturityScore]]
+    ) -> str:
+        total = len(scores)
+        dist: Dict[int, int] = {0: 0, 1: 0, 2: 0}
+        for s in scores:
+            dist[s.overall_level] += 1
+
+        # Cohort narrative
+        if dist[2] == total:
+            narrative = (
+                "All scanned teams are operating at AI-Native level. "
+                "Focus shifts to sustaining practices and mentoring peers."
+            )
+        elif dist[2] > 0:
+            narrative = (
+                f"{dist[2]} of {total} teams have reached AI-Native (L2). "
+                f"{dist[1]} are actively integrating AI tools (L1), "
+                f"and {dist[0]} have not yet established consistent AI practices (L0)."
+            )
+        elif dist[1] > 0:
+            pct = int(dist[1] / total * 100)
+            narrative = (
+                f"{pct}% of teams ({dist[1]} of {total}) are actively building AI practices. "
+                f"No teams have reached AI-Native status yet — "
+                f"the cohort is in the Integrating phase."
+            )
+        else:
+            narrative = (
+                f"None of the {total} scanned teams have established consistent "
+                f"AI-assisted development practices. "
+                f"This cohort is at the earliest stage of the AI-Native journey."
+            )
+
+        lines = [
+            "## Cohort Overview",
+            "",
+            narrative,
+            "",
+            "### Level Distribution",
+            "",
+            "| Level | Teams | Distribution |",
+            "|-------|-------|--------------|",
+        ]
+
+        for level in [2, 1, 0]:
+            badge = self._level_badge(level)
+            label_str = self._level_label(level)
+            bar = self._bar(dist[level], total)
+            pct = int(dist[level] / total * 100) if total > 0 else 0
+            lines.append(f"| {badge} — {label_str} | {dist[level]} | {bar} {pct}% |")
+
+        # Ranked summary table
+        lines += [
+            "",
+            "### Team Rankings",
+            "",
+            "*Ranked by overall score (average of AI and Engineering composite scores, 0–100)*",
+            "",
+            "| Rank | Team | Level | AI Score | Eng Score | Overall |",
+            "|------|------|-------|----------|-----------|--------|",
+        ]
+
+        for rank, s in ranked:
+            name = self._short_name(s.repository)
+            badge = self._level_badge(s.overall_level)
+            ai = f"{s.ai_adoption_score.composite_score:.0f}"
+            eng = f"{s.engineering_score.composite_score:.0f}"
+            overall = f"{self._overall_composite(s):.0f}"
+            lines.append(f"| {rank} | `{name}` | {badge} | {ai} | {eng} | {overall} |")
+
+        return "\n".join(lines)
+
+    def _where_to_focus(
+        self, scores: List[TeamMaturityScore], ranked: List[Tuple[int, TeamMaturityScore]]
+    ) -> str:
+        lines = ["## Where to Focus", ""]
+
+        # --- Strongest teams ---
+        top = [s for _, s in ranked[:3] if s.overall_level > 0]
+        if top:
+            lines += [
+                "### Strongest Teams",
+                "",
+                "These teams are leading the cohort. Their practices are worth learning from.",
+                "",
+            ]
+            for s in top:
+                name = self._short_name(s.repository)
+                badge = self._level_badge(s.overall_level)
+                composite = self._overall_composite(s)
+
+                # What they're doing well
+                strengths = []
+                if s.ai_signals and s.ai_signals.config_file_present:
+                    strengths.append("team-level AI configuration committed")
+                if s.ai_adoption_score.composite_score >= 40:
+                    strengths.append(
+                        f"strong AI adoption ({s.ai_adoption_score.composite_score:.0f}/100)"
+                    )
+                if s.engineering_score.composite_score >= 60:
+                    strengths.append(
+                        "solid engineering foundation "
+                        f"({s.engineering_score.composite_score:.0f}/100)"
+                    )
+                if s.ai_signals and s.ai_signals.co_author_ai_commit_count > 0:
+                    tools = ", ".join(s.ai_signals.co_author_tool_counts.keys())
+                    strengths.append(f"declared AI tool usage ({tools})")
+
+                strength_str = (
+                    ", ".join(strengths)
+                    if strengths
+                    else "consistent practices across both dimensions"
+                )
+                lines.append(f"**`{name}`** {badge} · Overall score: {composite:.0f}")
+                lines.append(f"  {strength_str[:1].upper() + strength_str[1:]}.")
+                lines.append("")
+
+        # --- Investment opportunities ---
+        not_l2 = [s for s in scores if s.overall_level < 2]
+        if not_l2:
+            # Sort by gap distance ascending (closest to next level first)
+            opportunities = sorted(not_l2, key=self._gap_distance)[:3]
+            lines += [
+                "### Investment Opportunities",
+                "",
+                "These teams are closest to the next level. "
+                "Targeted support here has the highest chance of moving the needle.",
+                "",
+            ]
+
+            for s in opportunities:
+                name = self._short_name(s.repository)
+                badge = self._level_badge(s.overall_level)
+                next_level = self._level_badge(s.overall_level + 1)
+                limiting = self._limiting_dimension(s)
+                composite = self._overall_composite(s)
+
+                # Pull one concrete gap from the gap analyzer
+                gap_str = ""
+                if s.ai_signals and s.eng_signals:
+                    gaps = self._analyzer.team_gaps(
+                        s.ai_adoption_score, s.ai_signals, s.engineering_score, s.eng_signals
+                    )
+                    limiting_gaps = (
+                        gaps["ai_adoption"] if limiting == "AI Adoption" else gaps["engineering"]
+                    )
+                    if "commit_gap" in limiting_gaps and limiting_gaps["commit_gap"]["needed"] > 0:
+                        gap_str = limiting_gaps["commit_gap"]["message"]
+                    elif (
+                        "test_file_gap" in limiting_gaps
+                        and limiting_gaps["test_file_gap"]["needed"] > 0
+                    ):
+                        gap_str = limiting_gaps["test_file_gap"]["message"]
+                    elif (
+                        "conventional_commit_gap" in limiting_gaps
+                        and limiting_gaps["conventional_commit_gap"]["needed"] > 0
+                    ):
+                        gap_str = limiting_gaps["conventional_commit_gap"]["message"]
+
+                if "both" in limiting.lower():
+                    limiting_str = "both dimensions (improvements to either will advance the team)"
+                else:
+                    limiting_str = limiting
+                lines.append(f"**`{name}`** {badge} → {next_level} · Score: {composite:.0f}")
+                lines.append(f"  Limiting dimension: {limiting_str}.")
+                if gap_str:
+                    lines.append(f"  Key gap: {gap_str}.")
+                lines.append("")
+
+        return "\n".join(lines)
+
+    def _team_summaries(self, ranked: List[Tuple[int, TeamMaturityScore]]) -> str:
+        lines = [
+            "## Team Summaries",
+            "",
+            "*Each team's current standing and concrete next steps. "
+            "Teams are listed in rank order.*",
+        ]
+
+        for rank, s in ranked:
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+            lines.append(self._team_summary(rank, s))
+
+        return "\n".join(lines)
+
+    def _team_summary(self, rank: int, score: TeamMaturityScore) -> str:
+        name = self._short_name(score.repository)
+        badge = self._level_badge(score.overall_level)
+        label = self._level_label(score.overall_level)
+        ai_c = score.ai_adoption_score.composite_score
+        eng_c = score.engineering_score.composite_score
+        overall = self._overall_composite(score)
+        limiting = self._limiting_dimension(score)
+
+        lines = [
+            f"### #{rank} \u00b7 `{name}`",
+            "",
+            f"**Level:** {badge} — {label} · "
+            f"**AI:** {ai_c:.0f} · "
+            f"**Engineering:** {eng_c:.0f} · "
+            f"**Overall:** {overall:.0f}",
+            f"**Repository:** `{score.repository}` · "
+            f"**Contributors:** {score.active_contributors}",
+            "",
+        ]
+
+        # What's working
+        working = []
+        if score.ai_signals and score.ai_signals.config_file_present:
+            working.append(
+                f"AI tool configuration committed (`{score.ai_signals.config_file_path}`" + ")"
+            )
+        if score.eng_signals and score.eng_signals.ci_cd_present:
+            working.append("CI/CD pipeline in place")
+        if score.eng_signals and score.eng_signals.readme_present:
+            working.append("repository is documented")
+        if score.eng_signals and score.eng_signals.conventional_commit_rate >= 0.5:
+            working.append(
+                f"conventional commits at {score.eng_signals.conventional_commit_rate:.0%}"
+            )
+        if score.ai_signals and score.ai_signals.co_author_ai_commit_count > 0:
+            tools = ", ".join(score.ai_signals.co_author_tool_counts.keys())
+            working.append(f"AI tool use declared in commits ({tools})")
+
+        if working:
+            lines.append("**What's working:**")
+            for item in working:
+                lines.append(f"- {item}")
+            lines.append("")
+
+        # Limiting factor
+        if score.overall_level < 2:
+            if "both" in limiting.lower():
+                lines.append(
+                    "**Limiting factor:** Both dimensions are at the same level — "
+                    "improvements to either will advance the team."
+                )
+            else:
+                lines.append(f"**Limiting factor:** {limiting} is the limiting dimension.")
+            lines.append("")
+
+        # Next steps (drawn from gap analyzer)
+        next_steps = self._next_steps(score)
+        if next_steps:
+            lines.append("**Three things to do next:**")
+            for step in next_steps[:3]:
+                lines.append(f"- {step}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+    def _next_steps(self, score: TeamMaturityScore) -> List[str]:
+        """Derive 2-3 plain-language next steps from the gap analyzer."""
+        if score.overall_level == 2:
+            return [
+                "Share what's working — this team's practices are exemplary",
+                "Mentor a lower-level team through their L0→L1 transition",
+                "Document AI tool patterns that have worked well for the team",
+            ]
+
+        if not score.ai_signals or not score.eng_signals:
+            return ["Re-scan with full signal collection to get actionable next steps"]
+
+        gaps = self._analyzer.team_gaps(
+            score.ai_adoption_score, score.ai_signals, score.engineering_score, score.eng_signals
+        )
+
+        steps = []
+        ai_gaps = gaps["ai_adoption"]
+        eng_gaps = gaps["engineering"]
+        limiting = gaps["limiting_dimension"]
+
+        # Collect AI adoption gaps (skip if this dimension already meets the team target)
+        if limiting in ("AI Adoption", "Both dimensions equally"):
+            if not ai_gaps.get("already_meets_team_target"):
+                if not score.ai_signals.config_file_present:
+                    steps.append(
+                        "Commit an AI tool configuration file "
+                        "(e.g. `CLAUDE.md`, `.cursorrules`) — "
+                        "establishes a shared AI working agreement"
+                    )
+                if "commit_gap" in ai_gaps and ai_gaps["commit_gap"]["needed"] > 0:
+                    needed = ai_gaps["commit_gap"]["needed"]
+                    current_pct = int(score.ai_signals.ai_assisted_commit_rate * 100)
+                    target_pct = int(ai_gaps["commit_gap"]["target_rate"] * 100)
+                    steps.append(
+                        f"Increase AI-assisted commits from {current_pct}% to {target_pct}%+ — "
+                        f"{needed} more commits this quarter will close the gap"
+                    )
+                if "contributor_gap" in ai_gaps and ai_gaps["contributor_gap"]["needed"] > 0:
+                    needed = ai_gaps["contributor_gap"]["needed"]
+                    current_w_ai = score.ai_signals.contributors_with_ai_patterns
+                    total_c = score.ai_signals.total_contributors
+                    steps.append(
+                        f"Get {needed} more contributor{'s' if needed > 1 else ''} "
+                        f"using AI tools — currently {current_w_ai} of {total_c} are"
+                    )
+
+        # Collect engineering gaps (skip if this dimension already meets the team target)
+        if limiting in ("Engineering Practices", "Both dimensions equally"):
+            if not eng_gaps.get("already_meets_team_target"):
+                if "test_file_gap" in eng_gaps and eng_gaps["test_file_gap"]["needed"] > 0:
+                    needed = eng_gaps["test_file_gap"]["needed"]
+                    steps.append(
+                        f"Add {needed} test files — target is "
+                        f"{int(eng_gaps['test_file_gap']['target_ratio'] * 100)}% "
+                        "test file ratio"
+                    )
+                if (
+                    "conventional_commit_gap" in eng_gaps
+                    and eng_gaps["conventional_commit_gap"]["needed"] > 0
+                ):
+                    needed = eng_gaps["conventional_commit_gap"]["needed"]
+                    current_pct = int(score.eng_signals.conventional_commit_rate * 100)
+                    target_pct = int(eng_gaps["conventional_commit_gap"]["target_rate"] * 100)
+                    steps.append(
+                        f"Adopt conventional commit format — currently at {current_pct}%, "
+                        f"target is {target_pct}%"
+                    )
+
+        return (
+            steps if steps else ["Review individual dimension scores to identify improvement areas"]
+        )
+
+    def _failed_repos(self, result: BatchScanResult) -> str:
+        lines = [
+            "## Scan Notes",
+            "",
+            f"{result.repos_failed} repositor{'y' if result.repos_failed == 1 else 'ies'} "
+            f"could not be scanned and {'is' if result.repos_failed == 1 else 'are'} "
+            f"not included in the results above.",
+            "",
+        ]
+        for repo, error in result.failed_repos:
+            lines.append(f"- `{repo}`: {error}")
         return "\n".join(lines)
