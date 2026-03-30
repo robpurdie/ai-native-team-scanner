@@ -1,0 +1,39 @@
+{
+  "thresholds": {
+    "ai_adoption": {
+      "level_1": {
+        "ai_config_present": true,
+        "ai_commit_percentage": 20,
+        "signal_categories_met": 2
+      },
+      "level_2": {
+        "ai_config_sophisticated": true,
+        "ai_commit_percentage": 60,
+        "ai_contributor_percentage": 80,
+        "sustained_windows": 2
+      }
+    },
+    "engineering": {
+      "level_1": {
+        "test_file_percentage": 15,
+        "conventional_commit_percentage": 30,
+        "cicd_present": true,
+        "documentation_present": true
+      },
+      "level_2": {
+        "test_file_percentage": 25,
+        "conventional_commit_percentage": 70,
+        "cicd_comprehensive": true,
+        "documentation_quality": "high",
+        "sustained_windows": 2
+      }
+    }
+  },
+  "normalization": {
+    "observation_window_days": 90,
+    "minimum_active_contributors": 2
+  },
+  "scoring": {
+    "rule": "min"
+  }
+}
