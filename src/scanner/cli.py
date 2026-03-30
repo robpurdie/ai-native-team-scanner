@@ -10,6 +10,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from scanner.analyzer import CommitAnalyzer
+from scanner.batch import BatchScanner
 from scanner.github_client import GitHubClient
 from scanner.reporter import ReportGenerator
 from scanner.scoring import TeamScorer
@@ -112,6 +113,27 @@ def print_score_summary(score: Any) -> None:
     print(f"\n{'='*60}\n")
 
 
+def format_batch_output(result: Any) -> dict:
+    """Format BatchScanResult for JSON output.
+
+    Args:
+        result: BatchScanResult object
+
+    Returns:
+        Dictionary ready for JSON serialization
+    """
+    return {
+        "scan_timestamp": result.scan_timestamp.isoformat(),
+        "summary": {
+            "repos_attempted": result.repos_attempted,
+            "repos_succeeded": result.repos_succeeded,
+            "repos_failed": result.repos_failed,
+        },
+        "failed_repos": [{"repo": name, "error": msg} for name, msg in result.failed_repos],
+        "scores": [format_score_output(s) for s in result.scores],
+    }
+
+
 def main() -> None:
     """Main CLI entry point."""
     # Load environment variables
@@ -121,7 +143,20 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Scan GitHub repositories for AI-native team signals"
     )
-    parser.add_argument("repo", help="Repository to scan in format 'owner/repo'")
+
+    parser.add_argument(
+        "repo",
+        nargs="?",
+        help="Repository to scan in format 'owner/repo'",
+        default=None,
+    )
+    parser.add_argument(
+        "--batch",
+        "-b",
+        metavar="REPOS_FILE",
+        help="Path to file with one owner/repo per line (batch mode)",
+        default=None,
+    )
     parser.add_argument("--output", "-o", help="Output file for results (JSON)", default=None)
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Print detailed output to console"
@@ -132,6 +167,17 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    # Validate mode selection
+    if args.repo and args.batch:
+        print("Error: 'repo' and '--batch' are mutually exclusive", file=sys.stderr)
+        sys.exit(1)
+    if not args.repo and not args.batch:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    if args.batch and not args.output:
+        print("Error: --batch requires --output to specify the results file", file=sys.stderr)
+        sys.exit(1)
+
     # Get GitHub token
     token = os.getenv("GITHUB_TOKEN")
     if not token:
@@ -141,26 +187,59 @@ def main() -> None:
         print("\nGet a token at: https://github.com/settings/tokens", file=sys.stderr)
         sys.exit(1)
 
-    # Initialize client and scorer
-    print(f"Scanning repository: {args.repo}")
     client = GitHubClient(token=token)
+    window = CommitAnalyzer.create_90day_window()
+
+    # ── Batch mode ──────────────────────────────────────────────────────────
+    if args.batch:
+        try:
+            repo_names = BatchScanner.parse_repo_file(args.batch)
+        except FileNotFoundError:
+            print(f"Error: repos file not found: {args.batch}", file=sys.stderr)
+            sys.exit(1)
+
+        if not repo_names:
+            print("Error: repos file is empty or contains only comments", file=sys.stderr)
+            sys.exit(1)
+
+        print(f"Batch scan: {len(repo_names)} repos from {args.batch}", file=sys.stderr)
+        print(f"Window: {window.start_date.date()} to {window.end_date.date()}", file=sys.stderr)
+
+        def progress(current: int, total: int, name: str) -> None:
+            print(f"[{current}/{total}] Scanning {name}...", file=sys.stderr)
+
+        scanner = BatchScanner(github_client=client._github)
+        result = scanner.scan_repos(repo_names, window, progress_callback=progress)
+
+        print(
+            f"Scan complete: {result.repos_succeeded} succeeded, " f"{result.repos_failed} failed",
+            file=sys.stderr,
+        )
+
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(format_batch_output(result), f, indent=2)
+        print(f"✓ Results saved to: {args.output}")
+
+        if result.repos_failed > 0:
+            print("\nFailed repos:", file=sys.stderr)
+            for repo_name, error in result.failed_repos:
+                print(f"  {repo_name}: {error}", file=sys.stderr)
+
+        sys.exit(0)
+
+    # ── Single-repo mode ─────────────────────────────────────────────────────
     scorer = TeamScorer()
 
-    # Fetch repository and score
     try:
-        # Get repository
+        print(f"Scanning repository: {args.repo}")
         repo = client._github.get_repo(args.repo)
         print(f"✓ Found repository: {repo.full_name}")
-
-        # Create 90-day observation window
-        window = CommitAnalyzer.create_90day_window()
         print(f"✓ Analyzing window: {window.start_date.date()} to {window.end_date.date()}")
-
-        # Score the repository
         print("✓ Analyzing commits and signals...")
         score = scorer.score_repository(repo, window)
 
-        # Output results
         if args.verbose or not args.output:
             print_score_summary(score)
 

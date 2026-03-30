@@ -270,3 +270,71 @@ class TestCLIMain:
         # Verify nested directory was created
         assert output_file.parent.exists()
         assert output_file.exists()
+
+
+class TestCLIBatchMode:
+    """Tests for CLI batch mode argument handling."""
+
+    @patch("scanner.cli.load_dotenv")
+    @patch("scanner.cli.os.getenv", return_value=None)
+    def test_batch_and_repo_mutually_exclusive(self, mock_getenv, mock_load_dotenv, capsys):
+        """Providing both 'repo' and '--batch' exits with error."""
+        with patch("sys.argv", ["scanner", "owner/repo", "--batch", "repos.txt"]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+        # argparse may exit before our validation for positional+flag conflicts;
+        # either way, exit code must be non-zero
+        assert exc_info.value.code != 0
+
+    @patch("scanner.cli.load_dotenv")
+    @patch("scanner.cli.os.getenv", return_value="fake_token")
+    @patch("scanner.cli.GitHubClient")
+    def test_batch_without_output_exits_with_error(
+        self, mock_client, mock_getenv, mock_load_dotenv, capsys
+    ):
+        """--batch without --output exits with an error message."""
+        with patch("sys.argv", ["scanner", "--batch", "repos.txt"]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "--output" in captured.err
+
+    @patch("scanner.cli.load_dotenv")
+    @patch("scanner.cli.os.getenv", return_value="fake_token")
+    @patch("scanner.cli.GitHubClient")
+    @patch("scanner.cli.BatchScanner")
+    def test_batch_flag_invokes_batch_scanner(
+        self, mock_batch_scanner_class, mock_client, mock_getenv, mock_load_dotenv, tmp_path
+    ):
+        """--batch flag routes through BatchScanner, not TeamScorer."""
+        from scanner.models import BatchScanResult
+
+        # Write a minimal repos file
+        repos_file = tmp_path / "repos.txt"
+        repos_file.write_text("owner/repo1\n")
+        output_file = tmp_path / "batch.json"
+
+        mock_client_instance = Mock()
+        mock_client.return_value = mock_client_instance
+
+        mock_result = BatchScanResult(
+            repos_attempted=1,
+            repos_succeeded=1,
+            repos_failed=0,
+            failed_repos=[],
+            scores=[],
+        )
+        mock_scanner_instance = Mock()
+        mock_scanner_instance.scan_repos.return_value = mock_result
+        mock_batch_scanner_class.return_value = mock_scanner_instance
+
+        with patch(
+            "sys.argv",
+            ["scanner", "--batch", str(repos_file), "--output", str(output_file)],
+        ):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+        # sys.exit(0) at end of batch mode
+        assert exc_info.value.code == 0
+        mock_scanner_instance.scan_repos.assert_called_once()

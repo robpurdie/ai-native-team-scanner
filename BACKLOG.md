@@ -129,40 +129,36 @@
 
 ---
 
-### P0: Git Trees API — Batch Performance Optimization
+### ✅ P0: Git Trees API — Batch Performance Optimization — DONE (March 30, 2026)
 **Feature:** Replace recursive directory traversal with GitHub's Git Trees API (`git/trees?recursive=1`)
 
 **Why:** Current file tree walking makes one API call per directory, which is expensive at scale. A single large repo can consume 50-200 API requests just for file counting. At 5,000 requests/hour (GitHub API rate limit), scanning 1,000 repos sequentially could take 10-40 hours — completely impractical for org-wide scans.
 
-**Technical Detail:** The Git Trees API returns the entire file tree in a single request regardless of repo size. This change alone reduces per-repo API calls by ~80-90% and is a prerequisite for practical batch scanning at Cisco scale.
-
-**Acceptance Criteria:**
-- `FileTypeDetector` or `TeamScorer._walk_repository` replaced with single `repo.get_git_tree(sha, recursive=True)` call
-- All existing file detection tests continue to pass
-- Measurable reduction in API calls per scan (validate against `vercel/ai`)
-- Rate limit headroom sufficient for batch scanning 100+ repos in a single run
-
-**Effort:** 2-4 hours
-
-**Note:** Must be implemented before or alongside Batch Scanning Mode — sequential scanning without this optimization will hit rate limits immediately at org scale.
+**Delivered:**
+- `_walk_repository_via_git_trees(repo) -> Tuple[int, int]` replaces recursive `_walk_repository(repo, path)`
+- Single `repo.get_git_tree(sha, recursive=True)` call per scan regardless of repo depth
+- ~80-90% reduction in API calls for file detection
+- 9 new tests in `TestGitTreesFileDetection` — all passing
+- Released as v3.1.0
 
 ---
 
 
-### P0: Batch Scanning Mode
+### ✅ P0: Batch Scanning Mode — DONE (March 30, 2026)
 **Feature:** Scan multiple repositories in a single CLI invocation
 
 **Why:** Need to compare 50-100 repos to identify best teams and generate org-wide insights
 
-**Acceptance Criteria:**
-- CLI accepts `--batch repos.txt` flag
-- Input file format: one repo per line (`owner/repo`)
-- Scans all repos, collects results
-- Handles failures gracefully (logs error, continues to next repo)
-- Progress indicator during batch scan
-- Output: single comparative JSON file
-
-**Effort:** 4-6 hours
+**Delivered:**
+- `--batch repos.txt` CLI flag; `--output` required in batch mode
+- `repos.txt`: one `owner/repo` per line; blank lines and `#` comments (full-line and inline) ignored
+- `BatchScanner` class in `src/scanner/batch.py` — error-isolated, continues on failure
+- `BatchScanResult` model — `repos_attempted`, `repos_succeeded`, `repos_failed`, `failed_repos`, `scores`, `scan_timestamp`
+- Progress to stderr: `[12/50] Scanning owner/repo...` and final summary line
+- Failed repos logged with error reason; listed at end of run
+- Output JSON embeds full per-repo score objects (same schema as single-repo)
+- 14 new tests in `tests/test_batch.py`, 3 new CLI tests in `TestCLIBatchMode` — all passing
+- Released as v3.2.0
 
 ---
 
@@ -429,7 +425,7 @@
 ### P2: Pull Request Review Patterns
 **Feature:** Detect code review culture and AI review involvement
 
-**Why:** Strong review practices correlate with quality; AI in reviews is emerging pattern
+**Why:** Strong review practices correlate with quality; AI in reviews is emerging pattern. Beyond general engineering health, PR review patterns are the closest observable proxy for *judgment capacity* that a repository scanner can reach. In AI-native teams, the critical human function is skeptical evaluation of AI output — and code review is where that judgment is most visibly exercised. A team that reviews PRs substantively, with multiple reviewers and meaningful comment density, is demonstrating the social architecture of skepticism that AI-native teams require. A team merging large PRs quickly with minimal review may be rubber-stamping AI output — a trust calibration failure that erodes quality over time. These signals don't measure judgment capacity directly (that is fundamentally relational and not visible in a repo), but they measure the *conditions* under which good judgment is most likely to be present.
 
 **Acceptance Criteria:**
 - Detect PR review turnaround time
@@ -439,6 +435,8 @@
 - Add to engineering practices dimension
 
 **Effort:** 1-2 days
+
+**Note (March 25, 2026):** Judgment capacity is the scarce human resource in AI-native teams. It is relational — it depends on humans triangulating with each other, surfacing shared concerns, and maintaining the social architecture of skepticism that no single person can sustain alone. Aints cannot measure judgment capacity directly, but PR review patterns are the best available declared/observable proxy for whether the conditions for good judgment exist on a team.
 
 ---
 
@@ -673,23 +671,12 @@
 
 ---
 
-## Next Sprint — Phase 2, Sprint 2
+## Current Sprint — Phase 2, Sprint 2 (ACTIVE)
 
-**Focus:** Performance + Batch Scanning
+### ✅ P0: Git Trees API — DONE (v3.1.0, March 30, 2026)
+### ✅ P0: Batch Scanning Mode — DONE (v3.2.0, March 30, 2026)
 
-### P0: Git Trees API — Batch Performance Optimization ← START HERE
-**Why now:** Current `_walk_repository` makes one API call per directory. A single large repo
-can consume 50-200 API calls just for file counting. Batch scanning 100+ repos will hit
-GitHub's 5,000/hour rate limit immediately without this fix.
-
-**What:** Replace recursive traversal with single `repo.get_git_tree(sha, recursive=True)` call.
-**Effort:** 2-4 hours
-
-### P0: Batch Scanning Mode
-**What:** `--batch repos.txt` CLI flag, one repo per line, single comparative JSON output.
-**Effort:** 4-6 hours
-
-### P0: Comparative Analysis Engine
+### P0: Comparative Analysis Engine ← NEXT
 **What:** Percentiles, rankings, top performers across batch results.
 **Effort:** 6-8 hours
 
@@ -738,6 +725,6 @@ These were not in the original backlog but were identified and fixed during real
 
 ---
 
-*Last Updated: March 24, 2026 (session: CoAuthorDetector, declared signals, AGENTS.md, batch scanning prep)*
-*Current Focus: Phase 2, Sprint 2 — Git Trees API + Batch Scanning*
-*Next session: start with Git Trees API P0*
+*Last Updated: March 30, 2026 (session: Git Trees API v3.1.0, Batch Scanning v3.2.0)*
+*Current Focus: Phase 2, Sprint 2 — Comparative Analysis Engine*
+*Next session: start with Comparative Analysis Engine P0*

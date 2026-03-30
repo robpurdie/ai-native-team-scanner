@@ -5,6 +5,33 @@ All notable changes to the AI-Native Team Scanner will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-03-30
+
+### Added
+- **Batch Scanning Mode** — `--batch repos.txt` CLI flag scans multiple repos in a single run. One `owner/repo` per line; blank lines and `#` comments ignored; inline comments stripped. Progress reported to stderr. Results serialized to `--output` JSON file. `--output` required in batch mode
+- **`BatchScanner` class** (`src/scanner/batch.py`) — error-isolated batch orchestration. Each repo failure recorded with reason; scan continues. Progress callback `(current, total, repo_name)` supported
+- **`BatchScanResult` model** — `repos_attempted`, `repos_succeeded`, `repos_failed`, `failed_repos`, `scores`, `scan_timestamp`
+- **`format_batch_output()`** in `cli.py` — serializes `BatchScanResult` to JSON, embedding full per-repo `format_score_output()` for each score
+- **14 new tests** in `tests/test_batch.py` — `parse_repo_file` (8 cases) and `scan_repos` (6 cases) including error isolation, progress callback, and `get_repo` failure handling
+- **3 new CLI tests** in `TestCLIBatchMode` — mutual exclusion, missing `--output`, batch routing
+
+### Changed
+- **`cli.py` argument parsing** — `repo` positional now optional (`nargs="?"`); `--batch`/`-b` added; manual mutual-exclusion validation; batch mode exits via `sys.exit(0)` after writing output
+- **`models.py`** — `Tuple` added to imports for `BatchScanResult.failed_repos` type annotation
+
+---
+
+## [3.1.0] - 2026-03-30
+
+### Added
+- **Git Trees API optimization** — `_walk_repository_via_git_trees()` replaces recursive `get_contents()` in `TeamScorer`. Single `repo.get_git_tree(sha, recursive=True)` call returns entire flat file tree. Reduces per-repo API calls for file detection by ~80-90%. Prerequisite for batch scanning at org scale
+- **9 new tests** in `TestGitTreesFileDetection` — verifies single API call, blob/tree filtering, Python/TypeScript detection, error fallback, empty repo handling, and correct `get_branch`/`get_git_tree` call signatures
+
+### Changed
+- **`scoring.py`** — `_walk_repository(repo, path)` replaced by `_walk_repository_via_git_trees(repo) -> Tuple[int, int]`. `Iterator`/`Any` imports replaced by `Tuple`. `_detect_engineering_signals` updated to unpack `(test_files, code_files)` tuple directly
+
+---
+
 ## [3.0.0] - 2026-03-14
 
 ### Added

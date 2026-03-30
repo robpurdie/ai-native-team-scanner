@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -70,6 +70,18 @@ class DimensionScore:
     threshold_met: dict  # Threshold name -> bool
     details: str = ""
     composite_score: float = 0.0  # 0-100 score for ranking within levels
+
+
+@dataclass
+class BatchScanResult:
+    """Results from scanning multiple repositories in a single batch run."""
+
+    repos_attempted: int
+    repos_succeeded: int
+    repos_failed: int
+    failed_repos: List[Tuple[str, str]]  # (repo_name, error_message)
+    scores: List["TeamMaturityScore"]
+    scan_timestamp: datetime = field(default_factory=datetime.now)
 
 
 @dataclass

@@ -1,9 +1,9 @@
 # AI-Native Team Scanner - Project Context
-**Last Updated**: March 23, 2026
+**Last Updated**: March 30, 2026
 
 ## Repository Information
 - **GitHub Repo**: https://github.com/robpurdie/ai-native-team-scanner
-- **Current Version**: v3.0.0 (released 2026-03-14)
+- **Current Version**: v3.1.0 (released March 24, 2026)
 - **Branch Strategy**: `main` = stable releases, `dev` = active development
 - **Local Path**: ~/Apps/Aints
 
@@ -14,311 +14,183 @@
 
 These documents provide the big picture view and guide tactical implementation decisions.
 
-## Current Status (March 23, 2026)
+## Current Status (March 30, 2026)
 
-### ✅ Production-Ready Scanner
-The scanner is **fully functional** and has been validated against real repositories:
-
-**Core Features Complete:**
-- ✅ GitHub API integration with rate limiting and error handling
-- ✅ 90-day observation window commit analysis
-- ✅ Active contributor calculation and normalization
-- ✅ AI adoption signal detection (config files, commit patterns, contributor coverage)
-- ✅ Engineering practice signal detection (tests, conventional commits, CI/CD, docs)
-- ✅ Two-dimensional maturity scoring (AI Adoption + Engineering Practices)
-- ✅ Modern platform CI/CD detection (Vercel, Netlify, Railway, Render, etc.)
-- ✅ GitHub API behavioral CI/CD detection (fallback for repos without config files)
-- ✅ JSON output with full analysis and threshold evaluation
-- ✅ Verbose CLI mode with detailed progress reporting
-
-**Test Coverage:**
-- ✅ 170+ tests passing
-- ✅ 85%+ code coverage
-- ✅ All CI checks green
-- ✅ Pre-commit hooks prevent regressions
-- ✅ Conventional commit enforcement (commit-msg hook) — 100% conventional commits required
-
-**Validation — Real Repos Scanned:**
-- ✅ `vercel/ai` — L1 (AI L2, Engineering L1) — engineering is limiting dimension
-- ✅ `microsoft/vscode-python` — L0 (AI L1, Engineering L0) — only gap is conventional commits
-- ✅ `cline/cline` — L1 (AI L2, Engineering L1) — same pattern as vercel/ai
-- ✅ `robpurdie/ai-native-team-scanner` — L1 (AI L1, Engineering L1) — our own repo
-
-### ✅ Phase 1 Complete — Results Are Now Actionable
-
-**Delivered (March 14, 2026, committed to `dev`):**
-- **Composite Scoring** — 0-100 scores on both dimensions for ranking within levels
-- **Gap Analysis Engine** — concrete next steps with raw counts, not just rates
-- **Report Generator** — full markdown reports, no LLM dependency
-- **CLI `--report` flag** — generates markdown alongside JSON output
-- **Signals stored on `TeamMaturityScore`** — self-contained for all downstream consumers
-
-### ✅ Significant Report Quality Improvements (March 14, 2026)
-
-**Executive Summary:**
-- Description is now dimension-aware, not generic level description
-- Limiting dimension statement explains consequence for AI-Native goal
-- Engineering limiting: warns about technical debt risk
-- AI limiting: calls out unrealised productivity gains
-
-**Strategic Roadmap:**
-- L0 and L1 roadmaps now suppress guidance for signals already met
-- Both levels check individual signal values against thresholds
-- Example: 55% test file ratio → no suggestion to "deepen test coverage to 25%"
-
-**Gap Analysis:**
-- team_gaps() caps dimension targets at team's next overall level
-- AI at L1 for an L0 team no longer chases L2 while engineering hasn't reached L1
-
-**Language and Framing:**
-- "Test file ratio" not "test coverage" — different measurements
-- AI config file described as "working agreement with AI tools"
-- Config file absence explained with meaning, not just instruction
-
-**Threshold Changes:**
-- `min_contributors: 2` → `min_commits: 10`
-- Human-AI pairs are legitimate team units
-- Commit volume is the right proxy for sufficient signal
-
-### ⏭️ Current Focus: Phase 2 — Next Feature Ready to Implement
-
-**Feature: `CoAuthorDetector` — Git Trailer AI Signal Detection**
-
-This is fully designed and ready for TDD implementation. See detailed spec below.
-Do NOT re-litigate design decisions — they were made deliberately in a session on March 23, 2026.
+### ✅ Phase 1 Complete — Results Are Actionable
+### ✅ Phase 2 Sprint 1 Complete — Declared AI Signal Detection
+### ✅ Phase 2 Sprint 2, Item 1 Complete — Git Trees API Optimization
 
 ---
 
-## IMPLEMENTATION SPEC: CoAuthorDetector (Ready to Build)
+## Completed Features
 
-### Background & Design Decisions Made
+### Phase 1 (March 14, 2026)
+- Composite scoring (0-100) for ranking within levels
+- Gap analysis engine with concrete next steps
+- Markdown report generator (no LLM dependency)
+- CLI `--report` flag
+- Signal-aware roadmap suppression
+- `min_contributors: 2` → `min_commits: 10`
 
-**The problem:** Current `CommitPatternDetector` detects AI assistance from commit message
-subject lines — a problematic signal because it depends on human discipline and produces
-both false positives (verbose human developers) and false negatives (professional AI users
-who don't flag AI in messages). The behavioral inference patterns (bullet points, verbose
-language, "improve readability") in `AI_COMMIT_PATTERNS` were explicitly rejected as
-scoring signals — they are inference, not declaration.
+### Phase 2 Sprint 1 (March 24, 2026)
+- **`CoAuthorDetector`** — git trailer parser, detects copilot/aider/cursor/claude_code
+- **`CommitPatternDetector`** — stripped to declared signals only (no behavioral inference)
+- **`AGENTS.md`** added to `AIConfigDetector` (cross-tool standard)
+- **`.claudeignore`, `.aiderignore`, `.copilotignore`** added to `AIConfigDetector`
+- `co_author_ai_commit_count` and `co_author_tool_counts` surfaced in JSON output
+- Validated against `kenjudy/pdca-code-generation-process` and `Aider-AI/aider`
 
-**The solution:** `CoAuthorDetector` — scans git commit trailers for machine-generated
-AI agent signatures. These are automatic (no human discipline required), factual (the
-tool put them there), and generalizable across organizations.
+### Phase 2 Sprint 2 (March 30, 2026)
+- **Git Trees API** — `_walk_repository_via_git_trees()` replaces recursive `get_contents()`
+  - Single `repo.get_git_tree(sha, recursive=True)` call per scan
+  - ~80-90% reduction in API calls for file detection
+  - Returns `Tuple[int, int]` (test_count, code_count) directly
+  - 9 new tests in `TestGitTreesFileDetection`
+  - Awaiting local pipeline run + commit to `dev`
 
-**Design principles confirmed in session:**
-- Declared signals only — undercounting is preferable to overcounting
-- Fact, not inference — we will not infer AI from behavioral patterns
-- Config files remain in scoring for now — pending validation of co-author trailer
-  coverage across real repos before any model restructuring
-- Tool identity matters — capture *which* AI tool signed the commit, not just
-  binary detected/not-detected. Cost is negligible (same string already in memory),
-  value is significant for reports and Phase 2 comparative analysis.
+---
 
-**Future direction discussed but not yet actioned:**
-- Config files (CLAUDE.md, .cursorrules, etc.) may move from scoring signals to
-  recognition-only signals in a future session — pending evidence that co-author
-  trailer detection provides sufficient scoring coverage
-- Manual AI attribution in code comments (e.g. `# Generated by Claude`) identified
-  as a recognition signal (celebrated in reports, not scored) — not yet implemented
-- These are Option A decisions: validate first, restructure later
+## Current Test State
+- 164+ tests passing (March 24 baseline), +9 new Git Trees tests
+- 92% coverage (March 24 baseline)
+- All CI checks green on `dev` as of March 24
+- **Run pipeline before committing Git Trees changes:**
+  ```bash
+  black src/ tests/ && isort src/ tests/ && flake8 src/ tests/ && mypy src/ && pytest --cov=src --cov-report=term-missing --cov-fail-under=80
+  ```
 
-### What to Build
+---
 
-**1. New class: `CoAuthorDetector` in `src/scanner/detectors.py`**
+## ⏭️ Current Focus: Batch Scanning Mode
 
-Parses git trailers from commit message body. The trailer block appears after a blank
-line in the commit message. Each trailer line has the format `Token: Value`.
+Git Trees API is implemented (pending local pipeline + commit). Next P0 is **Batch Scanning Mode**.
 
-Co-author lines look like:
+### Design Decisions Made
+
+**CLI interface:**
+```bash
+python -m scanner.cli --batch repos.txt --output results/batch.json
 ```
-Co-authored-by: GitHub Copilot <copilot@github.com>
-Co-Authored-By: aider (claude-3-5-sonnet) <aider@aider.chat>
-Co-authored-by: Claude <claude@anthropic.com>
-```
+- `repos.txt`: one `owner/repo` per line, blank lines and `#` comments ignored
+- `--batch` is mutually exclusive with positional `repo` argument
+- `--output` required for batch mode (no stdout dump of 100 repos)
+- `--report` flag generates per-repo markdown reports alongside the batch JSON
 
-Interface:
+**Output format — two files:**
+1. `batch.json` — array of individual `TeamMaturityScore` JSON objects (same schema as single-repo)
+2. `batch_summary.json` — aggregate statistics (level distribution, medians, top performers)
+   - Derived from `batch.json`; generated automatically when `--output` is specified
+
+**Error handling:**
+- Failed repos logged to stderr with reason; scan continues
+- Repos with insufficient data (< 10 commits) included in output with `overall_level: 0` and `insufficient_data: true`
+- Rate limit hits: back off and retry (GitHub API: 5,000 req/hour)
+
+**Progress:**
+- Print one line per repo to stderr: `[12/50] Scanning owner/repo...`
+- Final line: `Scan complete: 48 succeeded, 2 failed`
+
+**Module location:** New file `src/scanner/batch.py` with `BatchScanner` class.
+Keeps `cli.py` thin — batch logic lives in its own module.
+
+### What to Build (TDD Order)
+
+**File: `src/scanner/batch.py`**
+
 ```python
-@classmethod
-def detect_ai_coauthor(cls, commit_message: str) -> Tuple[bool, Optional[str]]:
-    """Parse git trailers for AI agent co-author signatures.
+class BatchScanner:
+    def __init__(self, github_client: Github, thresholds: Optional[ScoringThresholds] = None):
+        ...
 
-    Returns:
-        Tuple of (detected: bool, tool: Optional[str])
-        tool is one of: "copilot", "claude_code", "aider", "cursor", "unknown_ai"
-    """
+    def scan_repos(
+        self,
+        repo_names: List[str],
+        window: ObservationWindow,
+        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+    ) -> BatchScanResult:
+        ...
+
+    @staticmethod
+    def parse_repo_file(path: str) -> List[str]:
+        """Parse repos.txt — strips blanks and # comments."""
+        ...
 ```
 
-Known tool patterns (case-insensitive matching on the co-author value):
-- `"copilot"` — matches `copilot@github.com` or `github-copilot` in co-author line
-- `"claude_code"` — matches `claude` in co-author line (Anthropic patterns)
-- `"aider"` — matches `aider@aider.chat` or `aider` in co-author line
-- `"cursor"` — matches `cursor` in co-author line
-- `"unknown_ai"` — co-author trailer detected but tool unrecognized (future-proofs
-  against new tools entering the market)
-
-Important: match on the trailer value only, not the entire commit message. A commit
-message body that happens to mention "copilot" in prose should not match.
-
-**2. Model changes: `src/scanner/models.py` — `AIAdoptionSignals`**
-
-Add two fields with defaults (non-breaking):
+**`BatchScanResult` dataclass** (add to `models.py`):
 ```python
-co_author_ai_commit_count: int = 0
-co_author_tool_counts: Dict[str, int] = field(default_factory=dict)
+@dataclass
+class BatchScanResult:
+    repos_attempted: int
+    repos_succeeded: int
+    repos_failed: int
+    failed_repos: List[Tuple[str, str]]  # (repo_name, error_message)
+    scores: List[TeamMaturityScore]
+    scan_timestamp: datetime
 ```
 
-Also add `from typing import Dict` if not already present.
-
-`co_author_tool_counts` example: `{"copilot": 34, "claude_code": 8, "aider": 5}`
-
-The existing `ai_assisted_commit_count` becomes the UNION of pattern-detected AND
-co-author-detected commits — no double-counting. A commit detected by both counts once.
-
-**3. Analyzer changes: `src/scanner/analyzer.py` — `analyze_commits()`**
-
-- Import `CoAuthorDetector`
-- For each commit, run `CoAuthorDetector.detect_ai_coauthor(message)` alongside
-  `CommitPatternDetector.is_ai_assisted(message)`
-- A commit is AI-assisted if EITHER fires (union, not addition)
-- Track `tool_counts: Dict[str, int]` accumulating tool detections
-- Track `co_author_ai_commits: int` separately (commits detected via trailer only)
-- Return dict gains two new keys: `co_author_ai_commit_count`, `co_author_tool_counts`
-
-**4. Scoring changes: `src/scanner/scoring.py` — `_detect_ai_signals()`**
-
-Pass the two new fields through to `AIAdoptionSignals`:
-```python
-co_author_ai_commit_count=commit_analysis["co_author_ai_commit_count"],
-co_author_tool_counts=commit_analysis["co_author_tool_counts"],
-```
-
-Composite score formula: **unchanged for now**. We validate real-world coverage
-before adjusting weights.
-
-### What NOT to Build (Explicitly Rejected)
-
-- Behavioral inference from diff size + commit message length correlation
-- Detecting AI from code style, comment density, or structural patterns
-- Any signal that requires inferring AI involvement rather than reading a declaration
+**`cli.py` changes:**
+- Add `--batch` argument (mutually exclusive group with positional `repo`)
+- Wire `BatchScanner` when `--batch` is present
+- Progress callback prints to stderr
 
 ### Tests to Write First (TDD)
 
-File: `tests/test_detectors.py` — add `TestCoAuthorDetector` class
+**`tests/test_batch.py`** — new file:
 
-**Copilot detection:**
 ```
-"feat: add feature\n\nCo-authored-by: GitHub Copilot <copilot@github.com>"
-→ (True, "copilot")
-```
+parse_repo_file:
+- Strips blank lines
+- Strips # comment lines
+- Strips inline comments (owner/repo  # comment)
+- Returns clean list of owner/repo strings
+- Empty file returns empty list
 
-**Aider detection:**
-```
-"fix: bug\n\nCo-authored-by: aider (claude-3-5-sonnet) <aider@aider.chat>"
-→ (True, "aider")
-```
-
-**Claude Code detection:**
-```
-"chore: update\n\nCo-authored-by: Claude <claude@anthropic.com>"
-→ (True, "claude_code")
+scan_repos:
+- Single repo → result contains one TeamMaturityScore
+- Failed repo → repos_failed incremented, repos_succeeded not
+- Mixed (one success, one failure) → both counted correctly
+- progress_callback called for each repo with (current, total, repo_name)
+- Rate limit exception → retried or recorded as failure (not crash)
 ```
 
-**Unknown AI tool:**
+**`tests/test_cli.py`** additions:
 ```
-"feat: thing\n\nCo-authored-by: SomeNewAITool <ai@newtool.com>"
-→ (True, "unknown_ai") — if "ai" appears in email or name
-```
-
-**No co-author trailer:**
-```
-"feat: add feature"
-→ (False, None)
+- --batch flag present with valid file → calls BatchScanner
+- --batch and positional repo both present → argparse error
+- --batch without --output → error message
 ```
 
-**Human co-author (not AI):**
-```
-"feat: add feature\n\nCo-authored-by: Jane Smith <jane@example.com>"
-→ (False, None)
-```
-
-**Case insensitivity:**
-```
-"feat: thing\n\nCo-Authored-By: GITHUB COPILOT <COPILOT@GITHUB.COM>"
-→ (True, "copilot")
-```
-
-**Prose mention should NOT match (critical):**
-```
-"feat: add copilot integration\n\nThis adds GitHub Copilot support"
-→ (False, None)
-```
-
-File: `tests/test_analyzer.py` — add/update tests for `analyze_commits()`
-
-- Co-author commit detected → counts in `ai_assisted_commits` and `co_author_ai_commit_count`
-- Pattern-detected commit → counts in `ai_assisted_commits` only, not `co_author_ai_commit_count`
-- Commit detected by BOTH → counts once in `ai_assisted_commits`, once in `co_author_ai_commit_count`
-- `co_author_tool_counts` accumulates correctly across multiple commits
-- Returns zero counts when no AI signals present
-
-File: `tests/test_models.py` — verify `AIAdoptionSignals` accepts new fields with defaults
-
-### Validation Plan (After Tests Pass)
-
-Scan a repo known to use Copilot heavily. Check:
-- `co_author_tool_counts` is non-empty
-- `co_author_ai_commit_count` is meaningfully different from pattern-detected count
-- JSON output contains new fields
-- No regression in existing scan results
-
-If co-author trailer detection returns near-zero across real repos, that is the signal
-to reconsider whether this is a viable scoring path — before restructuring config file
-treatment.
-
-### Pre-Commit Workflow (Run Before Any Commit)
-
-```bash
-black src/ tests/ && isort src/ tests/ && flake8 src/ tests/ && mypy src/ && pytest --cov=src --cov-report=term-missing --cov-fail-under=80
-```
-
-Then commit to `dev` branch with conventional commit format.
-Run `pre-commit install --hook-type commit-msg` if starting on a new clone.
+### Commit Sequence (after pipeline passes)
+1. Commit Git Trees API changes to `dev`
+2. Implement and commit Batch Scanning (TDD)
+3. Both on `dev`; merge to `main` when batch scanning is validated against real repos
 
 ---
 
-## Key Design Decisions Made This Session
+## Key Design Decisions
+
+### Declared Signals Only
+- Undercounting is a known, documentable limitation
+- Overcounting based on inference produces silent errors that erode trust
+- `CoAuthorDetector`: declared git trailers only; `CommitPatternDetector`: explicit tool names only
 
 ### Human-AI Teams
-A human-AI pair is a legitimate team unit. The old `min_contributors: 2` threshold
-reflected pre-AI assumptions. Replaced with `min_commits: 10` — commit volume is
-the right proxy for sufficient signal.
+- `min_commits: 10` (not `min_contributors: 2`) — human-AI pairs are legitimate team units
 
 ### AI Config Files as Soft Constraints
-`.cursorrules`, `CLAUDE.md`, and similar files are soft constraints — stated intent,
-not enforced standards. Their value is in the *act of writing them* (evidence of
-deliberate, collective thinking) not in enforcement. The scanner treats them as a
-signal of intentionality, not compliance. The engineering practices dimension
-(pre-commit hooks, CI/CD, test discipline) provides the enforcement layer.
+- Evidence of intentionality, not enforcement
+- Engineering practices dimension provides the enforcement layer (hooks, CI, tests)
 
-### Conventional Commits Now Enforced
-Added `conventional-pre-commit` hook at `commit-msg` stage. Every commit must
-follow conventional format — soft constraint becomes hard constraint.
-Run `pre-commit install --hook-type commit-msg` on any new clone.
+### Scoring vs. Recognition Signals
+- **Scoring**: automatic, machine-generated declarations (co-author trailers, config files)
+- **Recognition**: human intentionality (manual AI attribution) — celebrated in reports, not scored
 
-### Scoring vs. Recognition Signals (March 23, 2026)
-Two distinct signal categories were established:
-- **Scoring signals** — automatic, machine-generated declarations. Co-author git
-  trailers, config files (for now). What determines AI Adoption level.
-- **Recognition signals** — human intentionality. Manual AI attribution in code
-  comments/docstrings (`# Generated by Claude`). Celebrated in reports, not scored.
-  Teams are not penalized for absence; teams that do it are called out positively.
+### Git Trees API Performance Principle
+- One API call per repo for file detection, regardless of depth
+- Prerequisite for batch scanning at org scale (5,000 req/hour rate limit)
+- `get_git_tree(sha, recursive=True)` → flat list of all blobs and trees
 
-Config files are in scoring for now but may move to recognition-only pending
-validation that co-author trailer detection provides sufficient coverage.
-
-### Emerging Team Model
-Small teams of 2-3 humans + multiple AI agents as genuine team members.
-Same network complexity constraint (N(N-1)/2) that drove Agile small-team
-thinking applies to human-AI teams. Documented in METHODOLOGY.md.
+---
 
 ## Project Structure
 
@@ -334,35 +206,35 @@ ai-native-team-scanner/
 │   ├── scoring.py          # ✅ Two-dimensional maturity scoring + composite scores
 │   ├── gap_analysis.py     # ✅ Gap analysis engine (Phase 1)
 │   └── reporter.py         # ✅ Markdown report generator (Phase 1)
-├── tests/                  # ✅ 170+ tests, 85%+ coverage
+├── tests/                  # 164+ tests, 92%+ coverage
 ├── CLAUDE.md               # ✅ Working agreement with AI tools
-├── VISION.md              # ✅ Project vision and purpose
-├── MATURITY_MODEL.md      # ✅ 3-level framework definition
-├── METHODOLOGY.md         # ✅ Technical methodology (updated with team model, soft constraints)
-├── ARCHITECTURE.md        # ✅ System design
-├── ROADMAP.md             # ✅ Strategic roadmap (4 phases, Q2 2026 → 2027+)
-├── BACKLOG.md             # ✅ Prioritized feature backlog (P0-P3)
-├── DEVELOPMENT.md         # ✅ Dev workflow and practices
-├── QUICKSTART.md          # ✅ Setup instructions
-├── CHANGELOG.md           # ✅ Version history
-└── README.md              # ✅ Project overview
+├── VISION.md
+├── MATURITY_MODEL.md
+├── METHODOLOGY.md
+├── ARCHITECTURE.md
+├── ROADMAP.md
+├── BACKLOG.md
+├── DEVELOPMENT.md
+├── QUICKSTART.md
+├── CHANGELOG.md
+└── README.md
 ```
+
+---
 
 ## Technical Context
 
 ### Maturity Model
 - **Levels**: L0 (Not Yet), L1 (Integrating), L2 (AI-Native)
 - **Two Dimensions**: AI Adoption + Engineering Practices
-- **Overall Level**: Minimum of the two dimensions (lower-of-two rule)
+- **Overall Level**: Minimum of the two dimensions
 - **Normalization**: All metrics normalized by active contributors
 - **Observation Window**: 90 days (rolling)
-- **Sustained Pattern**: L2 requires consistency across 2 consecutive windows
-- **Minimum Signal**: 10 commits in window (not 2 contributors)
+- **Minimum Signal**: 10 commits in window
 
 ### AI Adoption Thresholds
 - **L1**: Config file OR 20%+ AI-assisted commits
 - **L2**: 60%+ AI-assisted commits AND 80%+ contributor coverage
-- Config file is a signal of intentionality, not a requirement
 
 ### Engineering Practice Thresholds
 - **L1**: 15%+ test file ratio, 30%+ conventional commits, CI/CD present, README present
@@ -371,15 +243,17 @@ ai-native-team-scanner/
 ### Composite Score Formulas
 - **AI Adoption**: `(ai_commit_rate × 60) + (contributor_coverage × 30) + (config_file × 10)`
 - **Engineering**: `(test_ratio × 30) + (conventional_rate × 40) + (ci_cd × 20) + (readme × 10)`
-- Both produce 0–100; capped defensively; stored on `DimensionScore.composite_score`
 
 ### AI Config Files Detected
-- `CLAUDE.md` (Claude/Anthropic) — our own working agreement
+- `CLAUDE.md`, `.claude.json`, `claude_config.json`, `.claudeignore` (Claude/Anthropic)
 - `.cursorrules` (Cursor)
-- `.github/copilot-instructions.md` (GitHub Copilot)
-- `.aider.conf.yml` (Aider)
+- `.github/copilot-instructions.md`, `.copilotignore` (GitHub Copilot)
+- `.aider.conf.yml`, `.aiderignore` (Aider)
 - `.continue/config.json` (Continue)
-- `.claude.json`, `claude_config.json`, `.ai/config.json` (generic)
+- `.ai/config.json` (generic)
+- `AGENTS.md` (cross-tool standard: OpenAI Codex, Google Jules, Claude Code)
+
+---
 
 ## Development Workflow
 
@@ -400,21 +274,26 @@ black src/ tests/ && isort src/ tests/ && flake8 src/ tests/ && mypy src/ && pyt
 ## Usage
 
 ```bash
-# Basic scan
+# Single repo scan
 python -m scanner.cli owner/repo --output results/scan.json
 
 # With markdown report
 python -m scanner.cli owner/repo --output results/scan.json --report results/report.md
 
 # Verbose
-python -m scanner.cli owner/repo --output results/scan.json --report results/report.md --verbose
+python -m scanner.cli owner/repo --output results/scan.json --verbose
+
+# Batch scan (coming next)
+python -m scanner.cli --batch repos.txt --output results/batch.json
 ```
+
+---
 
 ## Important Notes
 
 - **No organization-specific names** in public GitHub documentation
 - **High verifier audience** — methodology must be precise and defensible
-- **TDD required** — all code changes must have tests written first
+- **TDD required** — tests first, then implementation, then pipeline
 - **Never lower coverage thresholds** — write proper tests instead
 - **Never commit without local tests passing** — strict discipline
 - **Done means working software** — not design artifacts or documentation
@@ -422,8 +301,7 @@ python -m scanner.cli owner/repo --output results/scan.json --report results/rep
 
 ---
 
-**For Claude**: Read this file at session start to establish context. Phase 1 complete on `dev`.
-Next task is fully specified above under "IMPLEMENTATION SPEC: CoAuthorDetector". Start by
-writing tests in `tests/test_detectors.py`, then implement, then wire into analyzer and scoring.
-Do not re-litigate design decisions — they were made deliberately. Run
-`pre-commit install --hook-type commit-msg` if starting fresh on a new clone.
+**For Claude**: Read this file at session start. Current state:
+1. Git Trees API implementation done in `src/scanner/scoring.py` — awaiting local pipeline + commit
+2. Batch Scanning is the next P0 — full design spec above under "Current Focus"
+3. Start next session by checking if Git Trees commit happened, then proceed to `tests/test_batch.py`
