@@ -10,9 +10,12 @@ from github.Repository import Repository
 class AIConfigDetector:
     """Detect AI tool configuration files."""
 
-    # Known AI tool configuration files
-    AI_CONFIG_FILES = {
-        # Claude (Anthropic)
+    # Known AI tool configuration files -- ordered list, not set.
+    # Order defines detection priority when multiple files are present.
+    # More specific / higher-signal files precede generic ones.
+    # This ensures deterministic results across runs.
+    AI_CONFIG_FILES = [
+        # Claude (Anthropic) -- explicit tool configuration
         "CLAUDE.md",
         ".claude.json",
         "claude_config.json",
@@ -31,7 +34,7 @@ class AIConfigDetector:
         # Generic / cross-tool
         ".ai/config.json",
         "AGENTS.md",  # Cross-tool standard: OpenAI Codex, Google Jules, Claude Code
-    }
+    ]
 
     @classmethod
     def detect(cls, repo: Repository) -> Tuple[bool, Optional[str]]:

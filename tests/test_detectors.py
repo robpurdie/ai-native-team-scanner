@@ -213,6 +213,54 @@ class TestAIConfigDetector:
         assert detected is False
         assert path is None
 
+    def test_claude_md_takes_priority_over_agents_md(self):
+        """CLAUDE.md is returned when both CLAUDE.md and AGENTS.md are present.
+
+        AI_CONFIG_FILES is an ordered list. CLAUDE.md precedes AGENTS.md,
+        so it wins when both exist. This ensures deterministic results.
+        """
+        from unittest.mock import Mock
+
+        repo = Mock()
+        claude_file = Mock()
+        claude_file.path = "CLAUDE.md"
+        claude_file.type = "file"
+        agents_file = Mock()
+        agents_file.path = "AGENTS.md"
+        agents_file.type = "file"
+        readme = Mock()
+        readme.path = "README.md"
+        readme.type = "file"
+
+        repo.get_contents.return_value = [readme, claude_file, agents_file]
+
+        detected, path = AIConfigDetector.detect(repo)
+
+        assert detected is True
+        assert path == "CLAUDE.md"
+
+    def test_detection_is_deterministic_across_calls(self):
+        """Same repo returns same config file on repeated calls."""
+        from unittest.mock import Mock
+
+        repo = Mock()
+        agents_file = Mock()
+        agents_file.path = "AGENTS.md"
+        agents_file.type = "file"
+        cursorrules = Mock()
+        cursorrules.path = ".cursorrules"
+        cursorrules.type = "file"
+
+        repo.get_contents.return_value = [agents_file, cursorrules]
+
+        results = [AIConfigDetector.detect(repo) for _ in range(5)]
+        paths = [r[1] for r in results]
+
+        # All calls should return the same file
+        assert len(set(paths)) == 1
+        # .cursorrules precedes AGENTS.md in the priority list
+        assert paths[0] == ".cursorrules"
+
 
 class TestCICDDetector:
     """Tests for CI/CD detection."""
