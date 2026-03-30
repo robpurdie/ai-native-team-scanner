@@ -3,7 +3,7 @@
 
 ## Repository Information
 - **GitHub Repo**: https://github.com/robpurdie/ai-native-team-scanner
-- **Current Version**: v3.3.0 (dev branch)
+- **Current Version**: v3.2.0 (dev branch, unreleased)
 - **Branch Strategy**: `main` = stable releases, `dev` = active development
 - **Local Path**: ~/Apps/Aints
 

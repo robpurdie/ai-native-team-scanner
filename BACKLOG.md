@@ -673,10 +673,10 @@
 
 ## Current Sprint — Phase 2, Sprint 2 (ACTIVE)
 
-### ✅ P0: Git Trees API — DONE (v3.1.0, March 30, 2026)
+### ✅ P0: Git Trees API — DONE (v3.2.0, March 30, 2026)
 ### ✅ P0: Batch Scanning Mode — DONE (v3.2.0, March 30, 2026)
 
-### ✅ P0: Batch Markdown Report Generator — DONE (v3.3.0, March 30, 2026)
+### ✅ P0: Batch Markdown Report Generator — DONE (v3.2.0, March 30, 2026)
 **What:** `BatchReportGenerator` in `reporter.py` — multi-level markdown report from batch scan results.
 **Delivered:**
 - Three-section structure: Cohort Overview (domain leaders), Where to Focus (coaches), Team Summaries (teams)
@@ -733,6 +733,6 @@ These were not in the original backlog but were identified and fixed during real
 
 ---
 
-*Last Updated: March 30, 2026 (session: Git Trees API v3.1.0, Batch Scanning v3.2.0, Batch Report v3.3.0)*
+*Last Updated: March 30, 2026 (session: Git Trees API, Batch Scanning, Batch Report — all v3.2.0)*
 *Current Focus: Phase 2, Sprint 2 — Comparative Analysis Engine*
 *Next session: start with Comparative Analysis Engine P0 — models first, then tests, then implementation*
