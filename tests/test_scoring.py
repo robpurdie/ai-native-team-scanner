@@ -193,6 +193,161 @@ class TestTeamScorer:
         assert min(2, 2) == 2
 
 
+class TestGitTreesFileDetection:
+    """Tests for Git Trees API-based file detection.
+
+    Verifies that _walk_repository_via_git_trees() correctly counts test and code
+    files from a flat GitTree response, replacing the recursive get_contents() approach.
+    """
+
+    def _make_tree_element(self, path: str, element_type: str = "blob") -> Mock:
+        """Create a mock GitTreeElement."""
+        elem = Mock()
+        elem.path = path
+        elem.type = element_type
+        return elem
+
+    def _make_git_tree(self, elements: list) -> Mock:
+        """Create a mock GitTree with the given elements."""
+        tree = Mock()
+        tree.tree = elements
+        return tree
+
+    def test_counts_python_test_files(self):
+        """Test files matching Python test patterns are counted as test files."""
+        elements = [
+            self._make_tree_element("src/app.py"),
+            self._make_tree_element("src/utils.py"),
+            self._make_tree_element("tests/test_app.py"),
+            self._make_tree_element("tests/test_utils.py"),
+        ]
+        repo = Mock()
+        repo.get_git_tree.return_value = self._make_git_tree(elements)
+        repo.get_branch.return_value = Mock(commit=Mock(sha="abc123"))
+
+        scorer = TeamScorer()
+        test_count, code_count = scorer._walk_repository_via_git_trees(repo)
+
+        assert test_count == 2
+        assert code_count == 4  # all 4 are .py files
+
+    def test_counts_non_test_code_files(self):
+        """Non-test code files are counted in code_count but not test_count."""
+        elements = [
+            self._make_tree_element("src/main.py"),
+            self._make_tree_element("src/models.py"),
+            self._make_tree_element("README.md"),  # not a code file
+        ]
+        repo = Mock()
+        repo.get_git_tree.return_value = self._make_git_tree(elements)
+        repo.get_branch.return_value = Mock(commit=Mock(sha="abc123"))
+
+        scorer = TeamScorer()
+        test_count, code_count = scorer._walk_repository_via_git_trees(repo)
+
+        assert test_count == 0
+        assert code_count == 2
+
+    def test_skips_tree_elements(self):
+        """Directory entries (type='tree') are skipped -- only blobs are counted."""
+        elements = [
+            self._make_tree_element("src", element_type="tree"),
+            self._make_tree_element("src/app.py"),
+            self._make_tree_element("tests", element_type="tree"),
+            self._make_tree_element("tests/test_app.py"),
+        ]
+        repo = Mock()
+        repo.get_git_tree.return_value = self._make_git_tree(elements)
+        repo.get_branch.return_value = Mock(commit=Mock(sha="abc123"))
+
+        scorer = TeamScorer()
+        test_count, code_count = scorer._walk_repository_via_git_trees(repo)
+
+        assert test_count == 1
+        assert code_count == 2
+
+    def test_empty_repository(self):
+        """Empty tree returns zero counts without error."""
+        repo = Mock()
+        repo.get_git_tree.return_value = self._make_git_tree([])
+        repo.get_branch.return_value = Mock(commit=Mock(sha="abc123"))
+
+        scorer = TeamScorer()
+        test_count, code_count = scorer._walk_repository_via_git_trees(repo)
+
+        assert test_count == 0
+        assert code_count == 0
+
+    def test_single_api_call_regardless_of_depth(self):
+        """Git Trees API is called exactly once, regardless of directory nesting."""
+        elements = [
+            self._make_tree_element("a/b/c/d/deep.py"),
+            self._make_tree_element("a/b/c/d/tests/test_deep.py"),
+        ]
+        repo = Mock()
+        repo.get_git_tree.return_value = self._make_git_tree(elements)
+        repo.get_branch.return_value = Mock(commit=Mock(sha="abc123"))
+
+        scorer = TeamScorer()
+        scorer._walk_repository_via_git_trees(repo)
+
+        # get_git_tree called exactly once -- not once per directory
+        repo.get_git_tree.assert_called_once()
+
+    def test_falls_back_gracefully_on_api_error(self):
+        """Returns zero counts without raising if get_git_tree fails."""
+        repo = Mock()
+        repo.get_git_tree.side_effect = Exception("API error")
+        repo.get_branch.return_value = Mock(commit=Mock(sha="abc123"))
+
+        scorer = TeamScorer()
+        test_count, code_count = scorer._walk_repository_via_git_trees(repo)
+
+        assert test_count == 0
+        assert code_count == 0
+
+    def test_typescript_test_files_detected(self):
+        """TypeScript test files are detected correctly."""
+        elements = [
+            self._make_tree_element("src/app.ts"),
+            self._make_tree_element("src/app.test.ts"),
+            self._make_tree_element("src/utils.spec.ts"),
+        ]
+        repo = Mock()
+        repo.get_git_tree.return_value = self._make_git_tree(elements)
+        repo.get_branch.return_value = Mock(commit=Mock(sha="abc123"))
+
+        scorer = TeamScorer()
+        test_count, code_count = scorer._walk_repository_via_git_trees(repo)
+
+        assert test_count == 2
+        assert code_count == 3
+
+    def test_get_branch_called_with_default_branch(self):
+        """get_branch is called with repo.default_branch for the SHA."""
+        repo = Mock()
+        repo.default_branch = "main"
+        repo.get_git_tree.return_value = self._make_git_tree([])
+        repo.get_branch.return_value = Mock(commit=Mock(sha="abc123"))
+
+        scorer = TeamScorer()
+        scorer._walk_repository_via_git_trees(repo)
+
+        repo.get_branch.assert_called_once_with("main")
+
+    def test_get_git_tree_called_with_recursive_true(self):
+        """get_git_tree is called with recursive=True for full flat tree."""
+        repo = Mock()
+        repo.default_branch = "main"
+        repo.get_git_tree.return_value = self._make_git_tree([])
+        repo.get_branch.return_value = Mock(commit=Mock(sha="deadbeef"))
+
+        scorer = TeamScorer()
+        scorer._walk_repository_via_git_trees(repo)
+
+        repo.get_git_tree.assert_called_once_with("deadbeef", recursive=True)
+
+
 class TestScoringThresholds:
     """Tests for ScoringThresholds dataclass."""
 

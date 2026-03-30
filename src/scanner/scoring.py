@@ -1,7 +1,7 @@
 """Scoring engine for AI-Native Team Scanner."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from github.Repository import Repository
 
@@ -151,19 +151,8 @@ class TeamScorer:
         Returns:
             EngineeringSignals object
         """
-        # Count test and code files
-        test_files = 0
-        code_files = 0
-
-        try:
-            for item in self._walk_repository(repo, ""):
-                if FileTypeDetector.is_code_file(item.path):
-                    code_files += 1
-                    if FileTypeDetector.is_test_file(item.path):
-                        test_files += 1
-        except Exception as e:
-            print(f"Error counting files: {e}")
-
+        # Count test and code files via single Git Trees API call
+        test_files, code_files = self._walk_repository_via_git_trees(repo)
         test_ratio = test_files / code_files if code_files > 0 else 0.0
 
         # Conventional commits
@@ -190,27 +179,36 @@ class TeamScorer:
             documentation_files=doc_files,
         )
 
-    def _walk_repository(self, repo: Repository, path: str) -> Iterator[Any]:
-        """Recursively walk repository files (simplified version).
+    def _walk_repository_via_git_trees(self, repo: Repository) -> Tuple[int, int]:
+        """Fetch the complete file tree in a single API call using the Git Trees API.
+
+        Replaces the recursive get_contents() approach which made one API call per
+        directory. A single repo.get_git_tree(sha, recursive=True) call returns the
+        entire flat file tree regardless of depth, reducing API calls by ~80-90%.
 
         Args:
             repo: GitHub repository
-            path: Current path
 
-        Yields:
-            File objects
+        Returns:
+            Tuple of (test_file_count: int, code_file_count: int)
         """
+        test_files = 0
+        code_files = 0
+
         try:
-            contents = repo.get_contents(path)
-            content_list = contents if isinstance(contents, list) else [contents]
-            for item in content_list:
-                if item.type == "file":
-                    yield item
-                elif item.type == "dir" and not item.path.startswith("."):
-                    # Recurse into directories (skip hidden)
-                    yield from self._walk_repository(repo, item.path)
-        except Exception:
-            pass
+            sha = repo.get_branch(repo.default_branch).commit.sha
+            git_tree = repo.get_git_tree(sha, recursive=True)
+            for element in git_tree.tree:
+                if element.type != "blob":
+                    continue  # skip directory entries
+                if FileTypeDetector.is_code_file(element.path):
+                    code_files += 1
+                    if FileTypeDetector.is_test_file(element.path):
+                        test_files += 1
+        except Exception as e:
+            print(f"Error walking repository via Git Trees API: {e}")
+
+        return test_files, code_files
 
     def _score_ai_adoption(self, signals: AIAdoptionSignals) -> DimensionScore:
         """Score AI adoption dimension.
