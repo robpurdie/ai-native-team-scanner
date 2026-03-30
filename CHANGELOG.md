@@ -5,6 +5,26 @@ All notable changes to the AI-Native Team Scanner will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-03-30
+
+### Added
+- **Batch Markdown Report Generator** — `BatchReportGenerator` class in `reporter.py` produces multi-level markdown reports from `BatchScanResult`. Three sections: Cohort Overview (domain/family leaders), Where to Focus (coaching team), Team Summaries (individual teams with concrete next steps)
+- **`--report` flag in batch CLI mode** — generates markdown report alongside JSON output
+- **`--label` flag** — optional cohort label appears in batch report header (e.g. `'Platform Engineering — Q1 2026'`)
+- **14 new tests** in `TestBatchReportGenerator` covering structure, content, ranking, failure handling, and file output
+
+### Changed
+- **`reporter.py`** — `BatchScanResult` imported; `Dict`, `Tuple` added to typing imports
+- **`cli.py`** — `BatchReportGenerator` imported; `--report` and `--label` wired into batch path
+- **`.gitignore`** — resolved unresolved merge conflict markers; added `results/` directory
+
+### Fixed
+- Next steps in batch Team Summaries now draw from gap analyzer (concrete numbers) rather than falling through to generic fallback message
+- Limiting dimension prose readable for non-technical audience in both Investment Opportunities and Team Summaries sections
+- `_limiting_dimension()` now returns canonical strings matching `team_gaps()` output (`"Both dimensions equally"`, `"Engineering Practices"`)
+
+---
+
 ## [3.2.0] - 2026-03-30
 
 ### Added

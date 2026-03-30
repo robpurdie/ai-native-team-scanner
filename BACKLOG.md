@@ -676,6 +676,16 @@
 ### ✅ P0: Git Trees API — DONE (v3.1.0, March 30, 2026)
 ### ✅ P0: Batch Scanning Mode — DONE (v3.2.0, March 30, 2026)
 
+### ✅ P0: Batch Markdown Report Generator — DONE (v3.3.0, March 30, 2026)
+**What:** `BatchReportGenerator` in `reporter.py` — multi-level markdown report from batch scan results.
+**Delivered:**
+- Three-section structure: Cohort Overview (domain leaders), Where to Focus (coaches), Team Summaries (teams)
+- Next steps drawn from gap analyzer — concrete numbers, not generic fallback
+- `--report` and `--label` flags wired into batch CLI path
+- 14 new tests in `TestBatchReportGenerator`; 210 total tests, 93% coverage
+- Validated against real repos: vercel/ai, cline/cline, aints — readable and actionable end-to-end
+- `results/` added to `.gitignore`; `.gitignore` merge conflict resolved
+
 ### P0: Comparative Analysis Engine ← NEXT
 **What:** Percentiles, rankings, top performers across batch results.
 **Effort:** 6-8 hours
@@ -708,14 +718,12 @@ These were not in the original backlog but were identified and fixed during real
 ## Backlog Grooming Notes
 
 **Next to groom:**
-- Batch scanning mode design (input format, error handling, progress tracking)
 - Comparative analysis algorithms (percentile calculation, ranking logic)
-- Git Trees API implementation approach
+- Comparative report structure (what goes beyond what `BatchReportGenerator` already provides)
 
 **Technical debt to address:**
-- Test coverage for new features (maintain 85%+)
 - Performance optimisation for batch scanning (API rate limits, parallel processing)
-- Better AI commit detection (declared vs actual AI involvement)
+- TDD discipline: `BatchReportGenerator` was written implementation-first; noted and corrected. Enforce tests-first on all future features.
 
 ---
 
@@ -725,6 +733,6 @@ These were not in the original backlog but were identified and fixed during real
 
 ---
 
-*Last Updated: March 30, 2026 (session: Git Trees API v3.1.0, Batch Scanning v3.2.0)*
+*Last Updated: March 30, 2026 (session: Git Trees API v3.1.0, Batch Scanning v3.2.0, Batch Report v3.3.0)*
 *Current Focus: Phase 2, Sprint 2 — Comparative Analysis Engine*
-*Next session: start with Comparative Analysis Engine P0*
+*Next session: start with Comparative Analysis Engine P0 — models first, then tests, then implementation*
