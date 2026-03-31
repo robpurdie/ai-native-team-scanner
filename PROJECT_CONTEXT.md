@@ -1,5 +1,5 @@
 # AI-Native Team Scanner - Project Context
-**Last Updated**: March 30, 2026
+**Last Updated**: March 31, 2026
 
 ## Repository Information
 - **GitHub Repo**: https://github.com/robpurdie/ai-native-team-scanner
@@ -25,6 +25,7 @@
 - v3.2.0 — Batch Scanning Mode
 - v3.2.1 — AIConfigDetector determinism fix
 - v3.3.0 — Batch Markdown Report Generator
+- v3.3.1 — Batch report quality fixes (limiting dimension logic, heading/count mismatch, AI config threshold, tool-aware recommendations, large team guard) + `test_report_quality.py`
 
 **Sprint 2 remaining:**
 - Comparative Analysis Engine (next P0)

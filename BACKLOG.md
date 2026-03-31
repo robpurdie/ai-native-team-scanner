@@ -715,6 +715,161 @@ These were not in the original backlog but were identified and fixed during real
 
 ---
 
+## Bug Fixes — Batch Report (Identified March 31, 2026)
+
+*Identified during demo cohort scan. Fix all three before next demo or external use.*
+
+---
+
+### P0: Limiting Dimension Logic Inverted for L0 Teams
+**Feature:** Fix `_limiting_dimension()` to return the correct dimension when a team is L0 on both dimensions.
+
+**Why:** In the demo cohort, `rails/rails` scored AI: 11, Engineering: 46 — but the report identified Engineering Practices as the limiting dimension. This is backwards: the lower-scoring dimension (AI at 11) is clearly what's holding the team back. Any audience member comparing the scores to the label will immediately question the report's credibility.
+
+**Root cause (suspected):** `_limiting_dimension()` may be keying off level thresholds met/not-met rather than comparing composite scores directly. For L0 teams where both dimensions are below threshold, the lower composite should be identified as limiting.
+
+**Acceptance Criteria:**
+- For L0 teams: limiting dimension = whichever dimension has the lower composite score
+- For L1 teams where one dimension is L0 and one is L1: limiting dimension = the L0 dimension
+- For L1 teams where both dimensions are L1: existing "both dimensions" language is correct
+- Validated against demo cohort: `rails` should report AI Adoption as limiting, `kenjudy/pdca` should report Engineering Practices as limiting
+- All existing tests pass; new tests cover L0-both and L0/L1 mixed cases
+
+**Effort:** 1-2 hours
+
+---
+
+### P0: "What's Working" Credits AI Config File When AI Score Is Negligible
+**Feature:** Suppress or reframe the AI config file signal in "What's working" when overall AI adoption is very low.
+
+**Why:** The `rails` report credits `AGENTS.md` as something "working" while the team ranks last in the cohort on AI adoption (score: 11). The juxtaposition reads as contradictory — praising a signal whose presence clearly hasn't translated into adoption. For a coaching audience this undermines the report's credibility.
+
+**Design options (pick one):**
+- Suppress the AI config signal from "What's working" when ai_composite is below a threshold (e.g. < 20)
+- Reframe it: "AI tool configuration present but not yet reflected in commit patterns" — surfaces it as a gap rather than a win
+- Move it to a separate "Signals detected but not yet adopted" section
+
+**Acceptance Criteria:**
+- Teams with ai_composite < 20 do not list AI config file as a positive signal
+- The signal is either suppressed or reframed as an opportunity
+- Teams with meaningful AI adoption continue to show AI config file in "What's working"
+- All existing tests pass; new tests cover the low-adoption suppression case
+
+**Effort:** 1-2 hours
+
+---
+
+### P1: Next Steps Recommend Specific AI Config Files Without Context Awareness
+**Feature:** When recommending an AI config file, avoid prescribing a specific file (e.g. `CLAUDE.md`) that may be inappropriate or absurd given the team's context.
+
+**Why:** In the demo cohort, `Aider-AI/aider` — the team that *built* Aider — received the recommendation "Commit an AI tool configuration file (e.g. `CLAUDE.md`, `.cursorrules`) — establishes a shared AI working agreement." Recommending CLAUDE.md to the Aider team will get a laugh in a demo for the wrong reasons. More broadly, prescribing specific filenames risks looking naive when the scanner has no awareness of which tools a team actually uses.
+
+**Root cause:** The next steps generator recommends a fixed list of example filenames regardless of which AI tools the team has declared elsewhere in its signals. `Aider-AI/aider` has declared aider and claude_code co-author usage — the scanner already knows this team uses Aider.
+
+**Design:** Make the config file recommendation context-aware using signals already detected:
+- If co-author tool counts include `aider`, suggest `.aiderignore` or `AGENTS.md` first
+- If co-author tool counts include `copilot`, suggest `.github/copilot-instructions.md` first
+- If co-author tool counts include `claude_code`, suggest `CLAUDE.md` first
+- Fall back to generic language ("Commit an AI tool configuration file") without specific filename examples if no declared tools are detected
+
+**Acceptance Criteria:**
+- Recommended config file type matches declared tool usage where detectable
+- No team that has declared Aider usage receives a CLAUDE.md recommendation as the primary example
+- Generic fallback language used when no tool signals are present
+- All existing tests pass; new tests cover tool-aware config file recommendation
+
+**Effort:** 1-2 hours
+
+---
+
+### P1: Add End-to-End Fixture Tests That Encode Judgment About Report Quality
+**Feature:** Add a suite of end-to-end report quality tests using realistic score fixtures that assert the report output makes sense given the inputs — not just that it matches expected strings.
+
+**Why:** The scanner has 210 tests at 93% coverage, all green, yet a single pass through a six-team demo cohort revealed five report bugs. The tests verify that the code does what it's supposed to do — they don't verify that what it does produces coherent, actionable guidance. Coverage measures lines executed, not whether the logic behind them is correct. The missing category is tests that encode judgment: does the limiting dimension label match the lower composite? Does the heading accurately reflect the number of items? Does "What's working" avoid crediting signals that contradict the score?
+
+**Design:** Create `tests/test_report_quality.py` with a small set of realistic score fixtures modeled on real-world profiles observed in the demo cohort:
+- **Rails profile** — L0 overall, AI: ~11, Engineering: ~46. Asserts: AI Adoption identified as limiting; next steps count matches heading; AI config not credited in What's working at low AI composite.
+- **kenjudy profile** — L0 overall, AI: ~73, Engineering: ~41. Asserts: Engineering identified as limiting; next steps count matches heading.
+- **vercel/ai profile** — L1/L1, AI: ~25, Engineering: ~57. Asserts: AI Adoption identified as limiting given wide composite gap; next steps lead with AI-side guidance.
+- **aider profile** — L1/L1, AI: ~41, Engineering: ~58, tool=aider. Asserts: config file recommendation matches declared tool; next steps count matches heading.
+- **litellm profile** — L1/L1, large team (>50 contributors). Asserts: next steps do not contain raw commit targets above tractability threshold.
+- **balanced profile** — L1/L1, composites within 10 points. Asserts: "both dimensions" language is appropriate and retained.
+
+**Acceptance Criteria:**
+- `tests/test_report_quality.py` exists with at least six fixture-based test cases
+- Each test makes assertions about report content that encode a judgment rule, not just an expected string
+- Tests are parameterized where possible to reduce fixture duplication
+- All tests fail before bug fixes are applied (confirming they catch the known issues)
+- All tests pass after bug fixes are applied
+- Added to CI pipeline; coverage threshold maintained
+
+**Effort:** 3-4 hours (write fixtures first, then assertions — TDD order applies)
+
+**Note:** These tests are the safety net that prevents regression on the P0 bug fixes. Write them as part of the same session as the fixes, not after.
+
+---
+
+### P1: Next Steps Guidance Doesn't Account for Team Size
+**Feature:** Scale next steps language and framing based on team size, so that guidance is actionable at both small-team and large-team scale.
+
+**Why:** In the demo cohort, `litellm` (322 contributors) was told "Increase AI-assisted commits from 18% to 60%+ — 2,928 more commits this quarter will close the gap." That number is technically accurate but practically absurd — for a 322-person team, closing a 42-point AI adoption gap is a culture and tooling rollout challenge, not a "do more of what you're doing" challenge. The same raw gap calculation that makes sense for a 6-person team produces noise for a large organization. A practitioner audience will immediately recognize this as tone-deaf and it undermines confidence in the report.
+
+**Design:** Introduce team-size awareness into next steps generation. Possible approaches:
+- For teams above a contributor threshold (e.g. > 50), suppress raw commit-count targets and substitute scale-appropriate guidance (e.g. "Focus on tooling rollout and team-level working agreements before targeting commit rate improvements")
+- Surface contributor coverage as the primary metric for large teams rather than commit rate (getting more contributors using AI is more tractable than hitting a commit rate across thousands of commits)
+- Add a contextual note when gap targets exceed a "tractability threshold" (e.g. > 500 commits) flagging that the metric reflects scale, not just adoption maturity
+
+**Acceptance Criteria:**
+- Teams with > 50 contributors do not receive raw commit-count targets > 500 as primary next steps
+- Large teams receive guidance framed around contributor coverage and tooling rollout rather than raw commit counts
+- Small teams (≤ 50 contributors) behavior unchanged
+- All existing tests pass; new tests cover large-team next steps generation
+
+**Effort:** 2-4 hours
+
+---
+
+### P0: "Both Dimensions" Limiting Factor Obscures Real Coaching Signal
+**Feature:** When both dimensions are at the same level but have materially different composite scores, identify the lower-scoring dimension as limiting rather than defaulting to "both dimensions at the same level."
+
+**Why:** In the demo cohort, `vercel/ai` scored AI: 25, Engineering: 57 — a 32-point gap — but the report said "both dimensions are at the same level — improvements to either will advance the team." That's technically true (both are L1) but practically useless. A coach looking at those numbers knows exactly where to focus. The "both dimensions" language erases that signal entirely.
+
+**Root cause (suspected):** `_limiting_dimension()` returns the "both" fallback whenever level integers are equal, without checking whether composite scores differ materially.
+
+**Design:** Introduce a gap threshold (e.g. 15 points). When both dimensions are the same level but composites differ by more than the threshold, identify the lower-scoring dimension as limiting. Only use "both dimensions" language when composites are within the threshold of each other.
+
+**Acceptance Criteria:**
+- When same level but composite gap > 15 points: limiting dimension = lower composite, with language like "AI Adoption is the limiting dimension (25 vs 57 on Engineering)"
+- When same level and composite gap ≤ 15 points: existing "both dimensions" language retained
+- Next steps section reflects the identified limiting dimension — if AI is limiting, AI-side guidance leads
+- Validated against demo cohort: `vercel/ai` should identify AI Adoption as limiting
+- All existing tests pass; new tests cover same-level/wide-gap and same-level/narrow-gap cases
+
+**Effort:** 1-2 hours
+
+---
+
+### P0: "Three Things to Do Next" Renders Fewer Than Three Items
+**Feature:** Ensure the next-steps section always renders at least the promised number of actionable items, or change the heading to not promise a fixed count.
+
+**Why:** The `rails` report heading says "Three things to do next" but only lists one item (adopt conventional commits). This is jarring and makes the report look incomplete. Likely caused by the gap analyzer finding only one unmet threshold once CI/CD, README, and test ratio are already credited.
+
+**Root cause (suspected):** For teams where several signals are already partially met or where thresholds are distant enough that only one gap surfaces cleanly, the gap analyzer returns fewer than three items. The report template doesn't handle this gracefully.
+
+**Design options (pick one):**
+- Make the heading dynamic: "Next steps" or "One thing to do next" based on actual count
+- Add fallback guidance items drawn from the methodology when fewer than three gaps exist (e.g. contributor coverage, AI config file if missing)
+- Always surface at least three items by including longer-horizon recommendations when immediate gaps are few
+
+**Acceptance Criteria:**
+- Heading accurately reflects the number of items listed — no heading promises N items when fewer than N are shown
+- Preferred: always three meaningful items for any team at any level
+- All existing tests pass; new tests cover single-item and two-item gap cases
+
+**Effort:** 1-2 hours
+
+---
+
 ## Backlog Grooming Notes
 
 **Next to groom:**
@@ -733,6 +888,6 @@ These were not in the original backlog but were identified and fixed during real
 
 ---
 
-*Last Updated: March 30, 2026 (session: Git Trees API, Batch Scanning, Batch Report — all v3.2.0)*
+*Last Updated: March 31, 2026 (session: Demo cohort scan, three batch report bugs identified and added to backlog)*
 *Current Focus: Phase 2, Sprint 2 — Comparative Analysis Engine*
-*Next session: start with Comparative Analysis Engine P0 — models first, then tests, then implementation*
+*Next session: fix three P0 batch report bugs first, then Comparative Analysis Engine — models first, tests, then implementation*

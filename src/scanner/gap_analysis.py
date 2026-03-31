@@ -264,16 +264,27 @@ class GapAnalyzer:
         overall_level = min(ai_score.level, eng_score.level)
         team_target = overall_level + 1 if overall_level < 2 else None
 
-        # Identify limiting dimension (the one holding back overall level)
-        if ai_score.level == eng_score.level:
-            if ai_score.level == 2:
-                limiting_dimension = None
+        # Identify limiting dimension (the one holding back overall level).
+        # When levels differ, the lower level is unambiguously limiting.
+        # When levels are equal, compare composites: a gap > 15 pts means the
+        # lower-scoring dimension is the real constraint even at equal levels.
+        if ai_score.level != eng_score.level:
+            if ai_score.level < eng_score.level:
+                limiting_dimension = "AI Adoption"
+            else:
+                limiting_dimension = "Engineering Practices"
+        elif ai_score.level == 2:
+            limiting_dimension = None
+        else:
+            composite_gap = abs(ai_score.composite_score - eng_score.composite_score)
+            if composite_gap > 15:
+                limiting_dimension = (
+                    "AI Adoption"
+                    if ai_score.composite_score < eng_score.composite_score
+                    else "Engineering Practices"
+                )
             else:
                 limiting_dimension = "Both dimensions equally"
-        elif ai_score.level < eng_score.level:
-            limiting_dimension = "AI Adoption"
-        else:
-            limiting_dimension = "Engineering Practices"
 
         return {
             "overall_level": overall_level,

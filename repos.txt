@@ -1,0 +1,9 @@
+# Demo cohort — Thursday coaching team presentation
+# Six repos spanning the maturity spectrum
+
+rails/rails                          # Elite engineering, near-zero AI adoption
+BerriAI/litellm                      # Active AI adoption, large team
+Aider-AI/aider                       # Meaningful AI use, solid engineering
+vercel/ai                            # AI tooling team, moderate adoption
+kenjudy/pdca-code-generation-process # AI-Native AI score, zero eng discipline
+robpurdie/ai-native-team-scanner     # The scanner scanning itself

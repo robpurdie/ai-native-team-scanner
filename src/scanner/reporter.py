@@ -656,12 +656,23 @@ class BatchReportGenerator:
         return "█" * filled + "░" * (width - filled)
 
     def _limiting_dimension(self, score: TeamMaturityScore) -> str:
-        ai = score.ai_adoption_score.level
-        eng = score.engineering_score.level
-        if ai < eng:
+        ai_level = score.ai_adoption_score.level
+        eng_level = score.engineering_score.level
+        ai_composite = score.ai_adoption_score.composite_score
+        eng_composite = score.engineering_score.composite_score
+
+        # Different levels: the lower level is unambiguously limiting
+        if ai_level < eng_level:
             return "AI Adoption"
-        if eng < ai:
+        if eng_level < ai_level:
             return "Engineering Practices"
+
+        # Same level: compare composites. If the gap is material (>15 pts),
+        # the lower-scoring dimension is the real constraint even at equal levels.
+        composite_gap = abs(ai_composite - eng_composite)
+        if composite_gap > 15:
+            return "AI Adoption" if ai_composite < eng_composite else "Engineering Practices"
+
         return "Both dimensions equally"
 
     def _gap_distance(self, score: TeamMaturityScore) -> float:
@@ -902,7 +913,10 @@ class BatchReportGenerator:
 
         # What's working
         working = []
-        if score.ai_signals and score.ai_signals.config_file_present:
+        # Only credit AI config if AI adoption is meaningful (composite > 20).
+        # A config file with negligible actual adoption is not a win — it's a gap.
+        ai_composite = score.ai_adoption_score.composite_score
+        if score.ai_signals and score.ai_signals.config_file_present and ai_composite > 20:
             working.append(
                 f"AI tool configuration committed (`{score.ai_signals.config_file_path}`" + ")"
             )
@@ -938,7 +952,13 @@ class BatchReportGenerator:
         # Next steps (drawn from gap analyzer)
         next_steps = self._next_steps(score)
         if next_steps:
-            lines.append("**Three things to do next:**")
+            count = min(len(next_steps), 3)
+            heading = {
+                1: "**One thing to do next:**",
+                2: "**Two things to do next:**",
+                3: "**Three things to do next:**",
+            }[count]
+            lines.append(heading)
             for step in next_steps[:3]:
                 lines.append(f"- {step}")
             lines.append("")
@@ -966,23 +986,46 @@ class BatchReportGenerator:
         eng_gaps = gaps["engineering"]
         limiting = gaps["limiting_dimension"]
 
+        # Large team guard: for teams with >50 contributors, raw commit-count
+        # targets above 500 are not actionable. Use contributor coverage framing instead.
+        large_team = score.active_contributors > 50
+
         # Collect AI adoption gaps (skip if this dimension already meets the team target)
         if limiting in ("AI Adoption", "Both dimensions equally"):
             if not ai_gaps.get("already_meets_team_target"):
                 if not score.ai_signals.config_file_present:
+                    # Recommend the config file that matches declared tools
+                    tool_counts = score.ai_signals.co_author_tool_counts or {}
+                    if "aider" in tool_counts:
+                        config_example = "`AGENTS.md` or `.aiderignore`"
+                    elif "copilot" in tool_counts:
+                        config_example = "`.github/copilot-instructions.md`"
+                    elif "cursor" in tool_counts:
+                        config_example = "`.cursorrules`"
+                    else:
+                        config_example = "`CLAUDE.md` or `AGENTS.md`"
                     steps.append(
-                        "Commit an AI tool configuration file "
-                        "(e.g. `CLAUDE.md`, `.cursorrules`) — "
+                        f"Commit an AI tool configuration file ({config_example}) — "
                         "establishes a shared AI working agreement"
                     )
                 if "commit_gap" in ai_gaps and ai_gaps["commit_gap"]["needed"] > 0:
                     needed = ai_gaps["commit_gap"]["needed"]
                     current_pct = int(score.ai_signals.ai_assisted_commit_rate * 100)
                     target_pct = int(ai_gaps["commit_gap"]["target_rate"] * 100)
-                    steps.append(
-                        f"Increase AI-assisted commits from {current_pct}% to {target_pct}%+ — "
-                        f"{needed} more commits this quarter will close the gap"
-                    )
+                    if large_team and needed > 500:
+                        # For large teams, reframe as a rollout challenge
+                        steps.append(
+                            f"Scale AI tool adoption across the team — "
+                            f"currently {current_pct}% of commits declare AI use, "
+                            f"target is {target_pct}%+. "
+                            f"Focus on tooling rollout and working agreements "
+                            f"before targeting commit rate directly"
+                        )
+                    else:
+                        steps.append(
+                            f"Increase AI-assisted commits from {current_pct}% to {target_pct}%+ — "
+                            f"{needed} more commits this quarter will close the gap"
+                        )
                 if "contributor_gap" in ai_gaps and ai_gaps["contributor_gap"]["needed"] > 0:
                     needed = ai_gaps["contributor_gap"]["needed"]
                     current_w_ai = score.ai_signals.contributors_with_ai_patterns
