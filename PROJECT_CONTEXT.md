@@ -209,7 +209,11 @@ python3 -m scanner.cli --batch repos.txt --output results/batch.json \
 ---
 
 **For Claude**: Read this file at session start.
-Batch report is complete and committed (v3.3.0). Next task is Comparative Analysis Engine.
+Batch report quality fixes complete and committed (v3.3.1). 224 tests, 96% coverage, pipeline green.
+Next task is Comparative Analysis Engine (P0).
 TDD order: models in `models.py` → tests in `tests/test_comparative.py` (must fail first) →
 implementation in `src/scanner/comparative.py` → pipeline green → commit.
 Do NOT write implementation before tests pass red.
+
+P0 bugs from backlog are resolved. P1 bugs (large team framing, tool-aware config) are also
+resolved as part of v3.3.1. Update BACKLOG.md to mark those items done at next opportunity.
