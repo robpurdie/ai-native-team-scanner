@@ -888,6 +888,12 @@ These were not in the original backlog but were identified and fixed during real
 
 ---
 
-*Last Updated: March 31, 2026 (session: Demo cohort scan, three batch report bugs identified and added to backlog)*
+*Last Updated: March 31, 2026 (session: Demo cohort scan → bugs identified → test_report_quality.py → bugs fixed → v3.3.1 merged to main → SIGNALS.md written)*
 *Current Focus: Phase 2, Sprint 2 — Comparative Analysis Engine*
-*Next session: fix three P0 batch report bugs first, then Comparative Analysis Engine — models first, tests, then implementation*
+*Next session: housekeeping (co-author trailers, mark resolved bugs done, push dev), then Comparative Analysis Engine — models first, tests, then implementation*
+
+---
+
+## Housekeeping — To Do Next Session
+
+- **Add `Co-Authored-By: claude` trailers to commits.** Aints is built entirely with AI assistance but scores 7% AI commit rate because commits are written as clean conventional commits with no AI attribution. This is the most honest thing to fix — and it makes the scanner's own repo a better example of what it measures. Configure git or the commit workflow to append `Co-Authored-By: Claude <noreply@anthropic.com>` to commit messages going forward.
