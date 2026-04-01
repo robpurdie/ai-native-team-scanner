@@ -212,7 +212,7 @@ This is an intentional undercounting strategy. A team using AI deeply but writin
 
 **Evidence from our own repository:** `robpurdie/ai-native-team-scanner` is built with AI assistance on 100% of commits via Claude.ai chat (not Claude Code), so no co-author trailers are generated. The repo scores on the basis of `CLAUDE.md` (config file signal) and explicit "Claude" mentions in some commit subjects only.
 
-**Implication for Cisco:** Teams may be classified as "Not Yet" or "Integrating" when they are in fact deeply AI-integrated. Qualitative validation — asking teams directly about their AI tool usage — should accompany scanner results, especially at L0.
+**Implication for users of this tool:** Teams may be classified as "Not Yet" or "Integrating" when they are in fact deeply AI-integrated. Qualitative validation — asking teams directly about their AI tool usage — should accompany scanner results, especially at L0.
 
 **Design principle confirmed:** Behavioural inference was considered and rejected. Undercounting is a known, documentable limitation; overcounting based on circumstantial signals produces silent errors that erode trust in scores. The scanner will only expand signal detection when the new signal constitutes a genuine declaration by the team or their tooling.
 
